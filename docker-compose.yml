@@ -1,0 +1,17 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: neos_core_db
+    environment:
+      POSTGRES_USER: neos_user
+      POSTGRES_PASSWORD: neos_password
+      POSTGRES_DB: neos_db
+    ports:
+      - "5432:5432"
+    volumes:
+      # Esto mantiene tus datos guardados incluso si detienes el contenedor. ¡Vital!
+      - postgres_data:/var/lib/postgresql/data/
+
+volumes:
+  postgres_data:
