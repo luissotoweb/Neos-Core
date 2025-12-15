@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager # Se usará para el startup/shutdown 
 
 # Importaciones de Neos Core
 from neos_core.database.config import Base, engine, get_db
-from neos_core.database import models  # Importar el módulo models
+from neos_core.database import models
 from neos_core import schemas, crud
 
 # --- Configuración de Logging ---
