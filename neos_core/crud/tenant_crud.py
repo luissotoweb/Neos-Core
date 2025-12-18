@@ -22,3 +22,7 @@ def create_tenant(db: Session, tenant: schemas.TenantCreate):
     db.commit()
     db.refresh(db_tenant)
     return db_tenant
+
+
+def get_tenants(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.Tenant).offset(skip).limit(limit).all()

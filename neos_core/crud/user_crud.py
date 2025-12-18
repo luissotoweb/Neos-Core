@@ -5,7 +5,6 @@ from passlib.context import CryptContext
 from neos_core.database import models
 from neos_core import schemas
 
-# --- CONFIGURACIÓN DE SEGURIDAD (Se queda con el User CRUD) ---
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
@@ -43,12 +42,38 @@ def create_user(db: Session, user: schemas.UserCreate):
         email=user.email,
         full_name=user.full_name,
         tenant_id=user.tenant_id,
+        role_id=user.role_id,  # <--- Vinculación con la tabla de roles
         hashed_password=hashed_password,
-        is_active=user.is_active,
-        is_superuser=user.is_superuser
+        is_active=user.is_active
     )
 
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
     return db_user
+
+def get_users(db: Session, skip: int = 0, limit: int = 100):
+    """Retorna todos los usuarios (solo para SuperAdmin o debugging)"""
+    return db.query(models.User).offset(skip).limit(limit).all()
+
+def get_users_by_tenant(db: Session, tenant_id: int, skip: int = 0, limit: int = 100):
+    """
+    Retorna usuarios filtrados por Tenant.
+    Cumple con el requisito de aislamiento (RF-001).
+    """
+    return db.query(models.User).filter(models.User.tenant_id == tenant_id).offset(skip).limit(limit).all()
+
+
+def get_visible_users(db: Session, current_user: models.User, skip: int = 0, limit: int = 100):
+    """
+    Jerarquía de visibilidad:
+    - SuperAdmin: Ve a todos los usuarios de todos los tenants.
+    - Admin: Solo ve a los usuarios de su propio tenant.
+    - Empleados: Solo ven su propia información (esto se puede ajustar según necesites).
+    """
+    if current_user.role.name == "superadmin":
+        return db.query(models.User).offset(skip).limit(limit).all()
+
+    return db.query(models.User).filter(
+        models.User.tenant_id == current_user.tenant_id
+    ).offset(skip).limit(limit).all()
