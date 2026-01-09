@@ -1,155 +1,121 @@
-# 🐍 Neos Core Backend
+#🐍 Neos Core Backend
 
-El corazón de nuestro sistema de gestión. Neos Core es una API robusta construida con **Python** y **FastAPI**, utilizando **PostgreSQL** para la persistencia de datos. Su arquitectura soporta un modelo multi-tenant para aislar los datos de cada cliente.
+El corazón de nuestro sistema de gestión. Neos Core es una API robusta construida con Python y FastAPI, diseñada bajo una arquitectura modular y un modelo multi-tenant para el aislamiento estricto de datos entre clientes.
 
----
+🚀 Inicialización del Entorno
 
-## 🚀 Inicialización del Entorno
+1\. Requisitos Previos
 
-### 1. Requisitos Previos
+Python 3.10+ (Recomendado 3.12+)
 
-Asegúrate de tener instalado:
-- **Python 3.10+**
-- **Docker Desktop** (Activo y en ejecución)
-- **Entorno virtual** (`.venv`) creado y activado.
+PostgreSQL instalado localmente o en un servidor accesible.
 
-### 2. Base de Datos (PostgreSQL)
+2\. Configuración del Proyecto
 
-Utilizamos Docker para un entorno de base de datos reproducible y consistente.
+bash
 
-| Comando                | Acción |
-| :---                   | :--- |
-| `docker compose up -d` | Inicia los contenedores de PostgreSQL. |
-| `docker compose down`  | Detiene y elimina los contenedores. |
+\# 1. Clonar e ingresar al directorio
 
-Para iniciar la base de datos, simplemente ejecuta:
-```bash
-docker compose up -d
-```
+cd Neos-Core
 
-> **Nota:** Asegúrate de que Docker Desktop esté ejecutándose antes de correr el comando.
+\# 2. Crear entorno virtual
 
-### 3. Configuración del Entorno Virtual
-
-Si es la primera vez que trabajas con el proyecto:
-
-```bash
-# Crear entorno virtual (si no existe)
 python -m venv .venv
 
-# Activar entorno virtual
-# Windows:
-.venv\Scripts\activate
-# Linux/Mac:
+\# 3. Activar entorno virtual
+
+\# Windows:
+
+.venv\\Scripts\\activate
+
+\# Linux/Mac:
+
 source .venv/bin/activate
 
-# Instalar dependencias
+\# 4. Instalar dependencias
+
 pip install -r requirements.txt
-```
 
-### 4. Ejecución del Servidor
+3\. Ejecución del Servidor
 
-Con el entorno virtual activado y la base de datos corriendo:
+Para iniciar el servidor en modo desarrollo con recarga automática:
 
-```bash
-# Iniciar servidor de desarrollo (con recarga automática)
-uvicorn main:app --reload
-```
+bash
 
-El servidor estará disponible en: [http://localhost:8000](http://localhost:8000)
+python -m uvicorn main:app --reload
 
----
+El servidor estará disponible en: http://localhost:8000
 
-## 📚 Documentación de la API
+🗂️ Estructura Modular del Proyecto
 
-FastAPI genera automáticamente documentación interactiva:
+El proyecto ha sido refactorizado para separar responsabilidades y facilitar el mantenimiento:
 
-- **📖 Swagger UI:** [http://localhost:8000/docs](http://localhost:8000/docs)
-- **📄 ReDoc:** [http://localhost:8000/redoc](http://localhost:8000/redoc)
+text
 
----
+Neos-Core/
 
-## 🗂️ Estructura del Proyecto
+├── neos\_core/
 
-```
-neos-core-backend/
-├── app/
-│   ├── api/           # Endpoints y rutas
-│   ├── core/          # Configuración y utilidades
-│   ├── models/        # Modelos de datos SQLAlchemy
-│   ├── schemas/       # Pydantic schemas
-│   └── services/      # Lógica de negocio
-├── .venv/             # Entorno virtual
-├── main.py            # Punto de entrada
-├── requirements.txt   # Dependencias
-├── docker-compose.yml # Configuración Docker
-└── .env               # Variables de entorno (crear)
-```
+│ ├── api/
 
----
+│ │ └── v1/
 
-## 🔧 Variables de Entorno
+│ │ ├── endpoints/ # Lógica de rutas (Users, Tenants, Inventory)
 
-Crea un archivo `.env` en la raíz del proyecto con:
+│ │ └── api\_router.py # Concentrador de rutas V1
 
-```env
-DATABASE_URL=postgresql://user:password@localhost:5432/neos_core
-SECRET_KEY=tu_clave_secreta_aqui
-ENVIRONMENT=development
-```
+│ ├── database/
 
----
+│ │ ├── models/ # Definición de tablas SQLAlchemy
 
-## 🐳 Docker Compose
+│ │ ├── config.py # Conexión y sesión de DB
 
-Configuración del entorno con Docker:
+│ │ └── seed.py # Poblado inicial (Roles, etc.)
 
-```yaml
-version: '3.8'
-services:
-  db:
-    image: postgres:15
-    environment:
-      POSTGRES_DB: neos_core
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+│ ├── security/ # JWT, hashing y dependencias de seguridad
 
-volumes:
-  postgres_data:
-```
+│ ├── schemas/ # Modelos Pydantic (Validación de datos)
 
----
+│ └── crud/ # Operaciones de base de datos
 
-## 🤝 Contribuir
+├── main.py # Punto de entrada y configuración de la App
 
-1. Crea un fork del repositorio
-2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abre un Pull Request
+└── requirements.txt
 
----
+📚 Documentación de la API
 
-## 📄 Licencia
+FastAPI genera automáticamente documentación interactiva basada en los esquemas Pydantic:
 
-Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
+📖 Swagger UI: http://localhost:8000/docs
 
----
+📄 ReDoc: http://localhost:8000/redoc
 
-## ✨ Características Principales
+Prefijo de API: Todas las rutas modulares se encuentran bajo el prefijo /api/v1/.
 
-- ✅ **FastAPI** - Alto rendimiento, fácil de usar, documentación automática
-- ✅ **PostgreSQL** - Base de datos robusta y confiable
-- ✅ **SQLAlchemy** - ORM poderoso y flexible
-- ✅ **Multi-tenant** - Aislamiento de datos por cliente
-- ✅ **Autenticación JWT** - Seguridad integrada
-- ✅ **Docker** - Entorno reproducible
-- ✅ **Type Hints** - Código más mantenible y seguro
+🔧 Configuración (Variables de Entorno)
 
----
+Crea un archivo .env en la raíz del proyecto. No compartas tus credenciales reales.
 
-*Desarrollado con ❤️ por el equipo Neos*
+env
+
+DATABASE\_URL=postgresql://:@:/
+
+SECRET\_KEY=tu\_clave\_secreta\_para\_jwt
+
+ALGORITHM=HS256
+
+ACCESS\_TOKEN\_EXPIRE\_MINUTES=30
+
+✨ Características Implementadas
+
+✅ Multi-tenancy: Aislamiento de datos mediante tenant\_id
+
+✅ RBAC (Role Based Access Control): Jerarquía de permisos (SuperAdmin, Admin, Seller, etc.)
+
+✅ Arquitectura Modular: Rutas y lógica CRUD desacopladas por dominio
+
+✅ Autenticación JWT: Seguridad basada en tokens
+
+✅ Seeding Automático: Creación de roles básicos al iniciar la aplicación
+
+Desarrollado con ❤️ por el equipo Neos

@@ -20,3 +20,9 @@ def read_tenant(tenant_id: int, db: Session = Depends(get_db), current_user: mod
     db_tenant = crud.get_tenant_by_id(db, tenant_id=tenant_id)
     if not db_tenant: raise HTTPException(status_code=404)
     return db_tenant
+
+@router.get("/", response_model=list[schemas.Tenant])
+def read_tenants(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    if current_user.role.name != "superadmin":
+        raise HTTPException(status_code=403, detail="Acceso denegado.")
+    return crud.get_tenants(db, skip=skip, limit=limit)

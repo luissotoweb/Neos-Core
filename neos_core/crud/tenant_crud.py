@@ -2,7 +2,7 @@
 
 from sqlalchemy.orm import Session
 from neos_core.database import models
-from neos_core import schemas
+from neos_core.schemas import tenant_schema as schemas
 
 def get_tenant_by_name(db: Session, name: str):
     """Busca un Tenant por su nombre."""
@@ -14,10 +14,7 @@ def get_tenant_by_id(db: Session, tenant_id: int):
 
 def create_tenant(db: Session, tenant: schemas.TenantCreate):
     """Crea un nuevo Tenant en la base de datos."""
-    db_tenant = models.Tenant(
-        name=tenant.name,
-        description=tenant.description
-    )
+    db_tenant = models.Tenant(**tenant.model_dump())
     db.add(db_tenant)
     db.commit()
     db.refresh(db_tenant)

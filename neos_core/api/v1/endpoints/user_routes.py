@@ -32,3 +32,20 @@ def read_users(
         current_user: models.User = Depends(get_current_user)
 ):
     return crud.get_visible_users(db, current_user=current_user, skip=skip, limit=limit)
+
+
+@router.get("/{user_id}", response_model=schemas.User)
+def read_user(
+        user_id: int,
+        db: Session = Depends(get_db),
+        current_user: models.User = Depends(get_current_user)
+):
+    # Verificación de permisos básica: Superadmin ve todo, otros ven su propio tenant
+    db_user = crud.get_user_by_id(db, user_id=user_id)
+    if not db_user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    if current_user.role.name != "superadmin" and current_user.tenant_id != db_user.tenant_id:
+        raise HTTPException(status_code=403, detail="No tienes acceso a este usuario")
+
+    return db_user

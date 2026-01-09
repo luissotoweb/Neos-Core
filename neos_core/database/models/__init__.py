@@ -1,9 +1,8 @@
 # neos_core/database/models/__init__.py
-
-# Forzamos la importación de las clases para que Base.metadata.create_all()
-# sepa de su existencia.
-
-from .tenant_model import Tenant
 from .user_model import User
 from .role_model import Role
+from .tenant_model import Tenant
 from .inventory_model import Product
+from .tax_models import TaxIdType, TaxResponsibility, Currency, PointOfSale
+from .client_model import Client  # Importar Client
+from .sales_model import Sale, SaleDetail  # Importar Sale después de Client

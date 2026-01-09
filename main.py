@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from neos_core.api.v1.api_router import api_router # El nuevo cerebro de rutas
 from neos_core.security import auth_router
 from neos_core.database.config import Base, engine, get_db
-from neos_core.database.seed import seed_roles
+from neos_core.database.seed import seed_roles, seed_tax_data
 
 # --- Configuración de Logging ---
 logging.basicConfig(level=logging.INFO)
@@ -20,6 +20,7 @@ def initialize_db():
         db = next(get_db())
         try:
             seed_roles(db)
+            seed_tax_data(db)
             log.info("Seeding completado.")
         finally:
             db.close()

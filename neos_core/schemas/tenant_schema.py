@@ -4,6 +4,9 @@ from typing import Optional
 class TenantBase(BaseModel):
     name: str
     description: Optional[str] = None
+    tax_id: Optional[str] = None
+    tax_id_type_id: Optional[int] = None
+    tax_responsibility_id: Optional[int] = None
 
 class TenantCreate(TenantBase):
     pass

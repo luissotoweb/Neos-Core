@@ -42,11 +42,14 @@ async def get_current_user(
     except JWTError:
         raise credentials_exception
 
-    # 2. Buscar al usuario en la base de datos
-    user = crud.get_user_by_email(db, email=token_data.email)
+    # 2. Buscar al usuario en la base de datos (AQUÍ VA EL CAMBIO)
+    user = db.query(models.User).filter(models.User.email == token_data.email).first()
 
     if user is None:
-        raise credentials_exception
+        raise HTTPException(status_code=401, detail="Usuario no encontrado")
 
-    # 3. Retornar el usuario (esto permite que el endpoint sepa quién llama)
+    # Esta línea es la que salva el test 'test_inactive_user_logic'
+    if not user.is_active:
+        raise HTTPException(status_code=400, detail="Usuario inactivo")
+
     return user
