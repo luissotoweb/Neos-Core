@@ -1,5 +1,81 @@
+# neos_core/schemas/__init__.py
+"""
+Importación centralizada de todos los schemas
+"""
+
+# Tenant
 from .tenant_schema import Tenant, TenantCreate
+
+# User
 from .user_schema import User, UserCreate
+
+# Role
 from .role_schema import Role
+
+# Auth/Token
 from .token_schema import Token, TokenData
-from .inventory_schema import Product, ProductCreate
+
+# Products
+from .product_schema import (
+    Product, 
+    ProductCreate, 
+    ProductUpdate, 
+    ProductListResponse
+)
+
+# Config (Currency, POS)
+from .config_schema import (
+    Currency, 
+    CurrencyCreate,
+    PointOfSale, 
+    PointOfSaleCreate,
+    PointOfSaleUpdate
+)
+
+# Client
+from .client_schema import Client, ClientCreate
+
+# Sales
+from .sales_schema import (
+    SaleCreate,
+    SaleItemCreate, 
+    SaleItemResponse, 
+    SaleResponse,
+    SaleListResponse,
+    SaleFilters
+)
+
+__all__ = [
+    # Tenant
+    "Tenant",
+    "TenantCreate",
+    # User
+    "User",
+    "UserCreate",
+    # Role
+    "Role",
+    # Auth
+    "Token",
+    "TokenData",
+    # Product
+    "Product",
+    "ProductCreate",
+    "ProductUpdate",
+    "ProductListResponse",
+    # Config
+    "Currency",
+    "CurrencyCreate",
+    "PointOfSale",
+    "PointOfSaleCreate",
+    "PointOfSaleUpdate",
+    # Client
+    "Client",
+    "ClientCreate",
+    # Sales
+    "SaleCreate",
+    "SaleItemCreate",
+    "SaleItemResponse",
+    "SaleResponse",
+    "SaleListResponse",
+    "SaleFilters",
+]

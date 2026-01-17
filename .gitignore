@@ -1,19 +1,105 @@
-# Directorios de Entornos Virtuales
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
 .venv/
 venv/
+ENV/
 env/
+.virtualenv/
 
-# Archivos de PyCharm
+# IDE
+.vscode/
 .idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
 
-# Archivos de caché de Python
-__pycache__/
-*.pyc
-*.pyo
+# Environment variables
+.env
+.env.local
+.env.*.local
+*.env
 
-# Archivos de Docker y Logs
+# Database
+*.db
+*.sqlite
+*.sqlite3
+test_*.db
+
+# Alembic migrations (keep structure, ignore specific versions)
+alembic/versions/*.py
+!alembic/versions/__init__.py
+
+# Testing
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
 *.log
-*.tmp
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
 
-# Scripts de Control Excluidos (Solicitud de Usuario)
-*.bat
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# Backup files
+*_backup/
+*.bak
+*.backup
+*.old
+*.orig
+
+# Documentation builds
+docs/_build/
+site/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/

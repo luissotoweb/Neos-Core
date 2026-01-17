@@ -3,10 +3,9 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from neos_core.database.config import Base  # Importamos la base
+from neos_core.database.config import Base
 
 
-# --- MODELO TENANT (CLIENTE) ---
 class Tenant(Base):
     """
     Representa a un cliente o inquilino principal en la arquitectura multi-tenant.
@@ -25,13 +24,26 @@ class Tenant(Base):
     tax_id_type_id = Column(Integer, ForeignKey("tax_id_types.id"), nullable=True)
     tax_responsibility_id = Column(Integer, ForeignKey("tax_responsibilities.id"), nullable=True)
 
+    # --- Configuración de Facturación Electrónica ---
+    electronic_invoicing_enabled = Column(
+        Boolean,
+        default=False,
+        nullable=False,
+        doc="Habilita/deshabilita la facturación electrónica (CAE). Por defecto: deshabilitada."
+    )
+    electronic_invoicing_provider = Column(
+        String(50),
+        nullable=True,
+        doc="Proveedor de facturación: AFIP (Argentina), SAT (México), SII (Chile), etc."
+    )
+
     # Campos de Seguimiento
     created_at = Column(DateTime(timezone=True), server_default=func.now(),
                         doc="Fecha y hora de creación del registro.")
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(),
                         doc="Última fecha y hora de actualización del registro.")
 
-    # Relación (Usamos una cadena para referenciar a 'User' que aún no está importado)
+    # Relaciones
     users = relationship("User", back_populates="tenant", lazy="dynamic")
     tax_type = relationship("TaxIdType")
     responsibility = relationship("TaxResponsibility")
