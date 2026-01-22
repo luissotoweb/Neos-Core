@@ -7,7 +7,7 @@ from decimal import Decimal
 from datetime import datetime, timedelta
 
 from neos_core.database.models import (
-    Tenant, User, Role, Product, Client,
+    Tenant, User, Role, Product, Client, ProductKit,
     PointOfSale, Currency, Sale, SaleDetail,
     TaxIdType, TaxResponsibility, ProductType
 )
@@ -522,6 +522,175 @@ def test_cancel_sale_success(client, db, sales_setup):
     # Verificar stock restaurado
     db.refresh(product)
     assert product.stock == initial_stock
+
+
+def test_cancel_sale_kit_restores_component_stock(client, db, sales_setup):
+    """✅ Cancelar venta de kit y restaurar stock de componentes"""
+    token = get_token(client, "seller.sales@empresaa.com", "password123")
+
+    component_a = Product(
+        tenant_id=sales_setup["tenant_a"].id,
+        sku="COMP-A",
+        name="Componente A",
+        price=Decimal("50.00"),
+        cost=Decimal("20.00"),
+        stock=Decimal("20"),
+        conversion_factor=Decimal("2"),
+        tax_rate=Decimal("0.00"),
+        product_type=ProductType.stock,
+        is_active=True
+    )
+    component_b = Product(
+        tenant_id=sales_setup["tenant_a"].id,
+        sku="COMP-B",
+        name="Componente B",
+        price=Decimal("30.00"),
+        cost=Decimal("10.00"),
+        stock=Decimal("30"),
+        conversion_factor=Decimal("1"),
+        tax_rate=Decimal("0.00"),
+        product_type=ProductType.stock,
+        is_active=True
+    )
+    kit = Product(
+        tenant_id=sales_setup["tenant_a"].id,
+        sku="KIT-001",
+        name="Kit Test",
+        price=Decimal("200.00"),
+        cost=Decimal("0.00"),
+        stock=Decimal("0"),
+        tax_rate=Decimal("0.00"),
+        product_type=ProductType.kit,
+        is_active=True
+    )
+    db.add_all([component_a, component_b, kit])
+    db.commit()
+
+    kit_component_a = ProductKit(
+        kit_product_id=kit.id,
+        component_product_id=component_a.id,
+        quantity=Decimal("3")
+    )
+    kit_component_b = ProductKit(
+        kit_product_id=kit.id,
+        component_product_id=component_b.id,
+        quantity=Decimal("1")
+    )
+    db.add_all([kit_component_a, kit_component_b])
+    db.commit()
+
+    initial_stock_a = component_a.stock
+    initial_stock_b = component_b.stock
+
+    sale = Sale(
+        tenant_id=sales_setup["tenant_a"].id,
+        user_id=sales_setup["user_seller_a"].id,
+        point_of_sale_id=sales_setup["pos_a"].id,
+        currency_id=sales_setup["currency"].id,
+        payment_method="CASH",
+        subtotal=Decimal("400"),
+        tax_amount=Decimal("0"),
+        total=Decimal("400"),
+        status="completed",
+        invoice_number="00000003"
+    )
+    db.add(sale)
+    db.flush()
+
+    detail = SaleDetail(
+        sale_id=sale.id,
+        product_id=kit.id,
+        quantity=Decimal("2"),
+        unit_price=Decimal("200"),
+        tax_rate=Decimal("0"),
+        subtotal=Decimal("400"),
+        tax_amount=Decimal("0"),
+        total=Decimal("400")
+    )
+    db.add(detail)
+
+    component_a.stock -= Decimal("3") * Decimal("2") * Decimal("2")
+    component_b.stock -= Decimal("1") * Decimal("2") * Decimal("1")
+    db.commit()
+
+    db.refresh(component_a)
+    db.refresh(component_b)
+    assert component_a.stock == initial_stock_a - Decimal("12")
+    assert component_b.stock == initial_stock_b - Decimal("2")
+
+    response = client.post(
+        f"/api/v1/sales/{sale.id}/cancel",
+        headers={"Authorization": f"Bearer {token}"}
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "cancelled"
+
+    db.refresh(component_a)
+    db.refresh(component_b)
+    assert component_a.stock == initial_stock_a
+    assert component_b.stock == initial_stock_b
+
+
+def test_cancel_sale_service_does_not_restore_stock(client, db, sales_setup):
+    """✅ Cancelar venta de servicio no modifica stock"""
+    token = get_token(client, "seller.sales@empresaa.com", "password123")
+
+    service = Product(
+        tenant_id=sales_setup["tenant_a"].id,
+        sku="SERVICE-001",
+        name="Servicio Cancelación",
+        price=Decimal("120.00"),
+        cost=Decimal("0.00"),
+        stock=Decimal("5"),
+        conversion_factor=Decimal("3"),
+        tax_rate=Decimal("0.00"),
+        product_type=ProductType.service,
+        is_active=True
+    )
+    db.add(service)
+    db.commit()
+
+    initial_stock = service.stock
+
+    sale = Sale(
+        tenant_id=sales_setup["tenant_a"].id,
+        user_id=sales_setup["user_seller_a"].id,
+        point_of_sale_id=sales_setup["pos_a"].id,
+        currency_id=sales_setup["currency"].id,
+        payment_method="CASH",
+        subtotal=Decimal("120"),
+        tax_amount=Decimal("0"),
+        total=Decimal("120"),
+        status="completed",
+        invoice_number="00000004"
+    )
+    db.add(sale)
+    db.flush()
+
+    detail = SaleDetail(
+        sale_id=sale.id,
+        product_id=service.id,
+        quantity=Decimal("1"),
+        unit_price=Decimal("120"),
+        tax_rate=Decimal("0"),
+        subtotal=Decimal("120"),
+        tax_amount=Decimal("0"),
+        total=Decimal("120")
+    )
+    db.add(detail)
+    db.commit()
+
+    response = client.post(
+        f"/api/v1/sales/{sale.id}/cancel",
+        headers={"Authorization": f"Bearer {token}"}
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "cancelled"
+
+    db.refresh(service)
+    assert service.stock == initial_stock
 
 
 def test_pause_and_resume_sale_flow(client, sales_setup):

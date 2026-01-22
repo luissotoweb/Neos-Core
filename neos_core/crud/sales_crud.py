@@ -194,9 +194,40 @@ def cancel_sale(db: Session, sale_id: int, tenant_id: int, user_id: int) -> Sale
             raise HTTPException(400, "Solo se pueden cancelar ventas completadas")
 
         for item in sale.items:
-            product = db.query(Product).filter_by(id=item.product_id).with_for_update().first()
-            conversion_factor = product.conversion_factor or Decimal("1")
-            product.stock += item.quantity * conversion_factor
+            product = (
+                db.query(Product)
+                .filter_by(id=item.product_id, tenant_id=tenant_id)
+                .with_for_update()
+                .first()
+            )
+            if not product:
+                raise HTTPException(404, "Producto no encontrado")
+
+            if product.product_type == ProductType.kit:
+                components = db.query(ProductKit).filter(
+                    ProductKit.kit_product_id == product.id
+                ).all()
+
+                if not components:
+                    raise HTTPException(400, f"El kit {product.name} no tiene componentes")
+
+                for component in components:
+                    component_product = (
+                        db.query(Product)
+                        .filter_by(id=component.component_product_id, tenant_id=tenant_id)
+                        .with_for_update()
+                        .first()
+                    )
+                    if not component_product:
+                        raise HTTPException(400, "Componente de kit inválido")
+
+                    conversion_factor = component_product.conversion_factor or Decimal("1")
+                    restored_qty = component.quantity * item.quantity * conversion_factor
+                    component_product.stock += restored_qty
+
+            elif product.product_type == ProductType.stock:
+                conversion_factor = product.conversion_factor or Decimal("1")
+                product.stock += item.quantity * conversion_factor
 
         sale.status = "cancelled"
         db.flush()
