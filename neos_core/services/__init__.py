@@ -1,1 +1,3 @@
-"""Servicios de integración externos."""
+"""
+Servicios de dominio para orquestar lógica entre módulos.
+"""

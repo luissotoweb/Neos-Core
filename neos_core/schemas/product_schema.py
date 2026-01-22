@@ -4,9 +4,27 @@ Schemas para productos (inventario)
 Usa Decimal para precisión monetaria
 """
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 from decimal import Decimal
 from datetime import datetime
+
+from neos_core.database.models.product_model import ProductType
+
+
+class ProductKitComponentBase(BaseModel):
+    component_product_id: int = Field(..., gt=0, description="Producto componente")
+    quantity: Decimal = Field(..., gt=0, description="Cantidad del componente en el kit")
+
+
+class ProductKitComponentCreate(ProductKitComponentBase):
+    pass
+
+
+class ProductKitComponent(ProductKitComponentBase):
+    id: int
+
+    class Config:
+        from_attributes = True
 
 
 class ProductBase(BaseModel):
@@ -24,10 +42,22 @@ class ProductBase(BaseModel):
     stock: Decimal = Field(default=Decimal("0"), ge=0)
     min_stock: Optional[Decimal] = Field(None, ge=0, description="Stock mínimo de alerta")
 
+    # Unidades y conversión
+    purchase_unit: str = Field(default="unit", min_length=1, max_length=50)
+    sale_unit: str = Field(default="unit", min_length=1, max_length=50)
+    conversion_factor: Decimal = Field(
+        default=Decimal("1"),
+        gt=0,
+        description="Equivalencia de unidad de venta a unidad de compra"
+    )
+
     # Impuestos
     tax_rate: Decimal = Field(default=Decimal("0"), ge=0, le=100, description="Tasa de impuesto (%)")
 
-    # Flags
+    # Tipo de producto
+    product_type: ProductType = Field(default=ProductType.stock)
+
+    # Flags (legacy)
     is_service: bool = Field(default=False, description="True si es un servicio (no mueve stock)")
     is_active: bool = Field(default=True)
 
@@ -38,6 +68,10 @@ class ProductBase(BaseModel):
 class ProductCreate(ProductBase):
     """Schema para crear producto (requiere tenant_id)"""
     tenant_id: int = Field(..., gt=0)
+    kit_components: Optional[List[ProductKitComponentCreate]] = Field(
+        default=None,
+        description="Componentes del kit si product_type=kit"
+    )
 
 
 class ProductUpdate(BaseModel):
@@ -49,8 +83,17 @@ class ProductUpdate(BaseModel):
     stock: Optional[Decimal] = Field(None, ge=0)
     min_stock: Optional[Decimal] = Field(None, ge=0)
     tax_rate: Optional[Decimal] = Field(None, ge=0, le=100)
+    product_type: Optional[ProductType] = None
     is_active: Optional[bool] = None
+    is_service: Optional[bool] = None
     attributes: Optional[dict] = None
+    kit_components: Optional[List[ProductKitComponentCreate]] = Field(
+        default=None,
+        description="Componentes del kit si product_type=kit"
+    )
+    purchase_unit: Optional[str] = Field(None, min_length=1, max_length=50)
+    sale_unit: Optional[str] = Field(None, min_length=1, max_length=50)
+    conversion_factor: Optional[Decimal] = Field(None, gt=0)
 
 
 class Product(ProductBase):
@@ -59,6 +102,7 @@ class Product(ProductBase):
     tenant_id: int
     created_at: datetime
     updated_at: Optional[datetime] = None
+    kit_components: List[ProductKitComponent] = Field(default_factory=list)
 
     class Config:
         from_attributes = True
@@ -71,6 +115,7 @@ class ProductListResponse(BaseModel):
     name: str
     price: Decimal
     stock: Decimal
+    product_type: ProductType
     is_active: bool
 
     class Config:

@@ -39,13 +39,18 @@ class SaleItemResponse(BaseModel):
 
 # ============ SALE ============
 
-SaleStatus = Literal["completed", "cancelled"]
+SaleStatus = Literal["completed", "cancelled", "on_hold"]
 
 class SaleCreate(BaseModel):
     client_id: Optional[int] = Field(None, description="Cliente opcional")
     point_of_sale_id: int = Field(..., gt=0)
     currency_id: int = Field(..., gt=0)
     payment_method: str = Field(..., min_length=2, max_length=50)
+    exchange_rate: Optional[Decimal] = Field(None, gt=0)
+    invoice_type: Optional[str] = Field(None, min_length=1, max_length=50)
+    cae: Optional[str] = Field(None, min_length=1, max_length=50)
+    cae_expiration: Optional[datetime] = None
+    invoice_number: Optional[str] = Field(None, min_length=1, max_length=50)
     items: List[SaleItemCreate]
 
     @field_validator("items")
@@ -63,6 +68,11 @@ class SaleResponse(BaseModel):
     client_id: Optional[int]
     point_of_sale_id: int
     currency_id: int
+    exchange_rate: Optional[Decimal]
+    invoice_type: Optional[str]
+    cae: Optional[str]
+    cae_expiration: Optional[datetime]
+    invoice_number: Optional[str]
     subtotal: Decimal
     tax_amount: Decimal
     total: Decimal
@@ -89,6 +99,6 @@ class SaleFilters(BaseModel):
     client_id: Optional[int] = None
     point_of_sale_id: Optional[int] = None
     payment_method: Optional[str] = None
-    status: Optional[str] = None
+    status: Optional[SaleStatus] = None
     skip: int = 0
     limit: int = Field(default=50, ge=1, le=100)

@@ -14,6 +14,12 @@ class Sale(Base):
     point_of_sale_id = Column(Integer, ForeignKey("points_of_sale.id"), nullable=False)
     currency_id = Column(Integer, ForeignKey("currencies.id"), nullable=False)
 
+    exchange_rate = Column(Numeric(10, 4), nullable=True)
+    invoice_type = Column(String(50), nullable=True)
+    cae = Column(String(50), nullable=True)
+    cae_expiration = Column(DateTime, nullable=True)
+    invoice_number = Column(String(50), nullable=True)
+
     subtotal = Column(Numeric(10, 2), nullable=False, default=0)
     tax_amount = Column(Numeric(10, 2), nullable=False, default=0)
     total = Column(Numeric(10, 2), nullable=False, default=0)

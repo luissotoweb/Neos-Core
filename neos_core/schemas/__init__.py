@@ -4,7 +4,7 @@ Importación centralizada de todos los schemas
 """
 
 # Tenant
-from .tenant_schema import Tenant, TenantCreate
+from .tenant_schema import Tenant, TenantCreate, TenantOnboardingCreate, TenantOnboardingResponse
 
 # User
 from .user_schema import User, UserCreate
@@ -17,10 +17,13 @@ from .token_schema import Token, TokenData
 
 # Products
 from .product_schema import (
+    ProductType,
     Product, 
     ProductCreate, 
     ProductUpdate, 
-    ProductListResponse
+    ProductListResponse,
+    ProductKitComponent,
+    ProductKitComponentCreate
 )
 
 # Config (Currency, POS)
@@ -45,10 +48,15 @@ from .sales_schema import (
     SaleFilters
 )
 
+# Cash Count
+from .cash_count_schema import CashCountCreate, CashCountResponse
+
 __all__ = [
     # Tenant
     "Tenant",
     "TenantCreate",
+    "TenantOnboardingCreate",
+    "TenantOnboardingResponse",
     # User
     "User",
     "UserCreate",
@@ -59,9 +67,12 @@ __all__ = [
     "TokenData",
     # Product
     "Product",
+    "ProductType",
     "ProductCreate",
     "ProductUpdate",
     "ProductListResponse",
+    "ProductKitComponent",
+    "ProductKitComponentCreate",
     # Config
     "Currency",
     "CurrencyCreate",
@@ -78,4 +89,7 @@ __all__ = [
     "SaleResponse",
     "SaleListResponse",
     "SaleFilters",
+    # Cash Count
+    "CashCountCreate",
+    "CashCountResponse",
 ]

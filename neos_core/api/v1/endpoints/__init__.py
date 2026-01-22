@@ -8,7 +8,9 @@ from . import (
     product_routes,
     config_routes,
     client_routes,
-    sales_routes
+    sales_routes,
+    cash_count_routes
+    accounting_routes
 )
 
 __all__ = [
@@ -18,4 +20,6 @@ __all__ = [
     "config_routes",
     "client_routes",
     "sales_routes",
+    "cash_count_routes",
+    "accounting_routes",
 ]
