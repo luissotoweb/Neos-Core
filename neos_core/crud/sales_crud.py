@@ -7,6 +7,7 @@ from neos_core.database.models import (
     Sale, SaleDetail, Product, Tenant, Client, PointOfSale, Currency
 )
 from neos_core.schemas.sales_schema import SaleCreate, SaleFilters
+from neos_core.services import accounting_service
 
 
 def create_sale(db: Session, tenant_id: int, user_id: int, sale_data: SaleCreate) -> Sale:
@@ -93,6 +94,8 @@ def create_sale(db: Session, tenant_id: int, user_id: int, sale_data: SaleCreate
             sale.subtotal = subtotal
             sale.tax_amount = tax_total
             sale.total = subtotal + tax_total
+
+            accounting_service.create_sale_move(db=db, sale=sale)
 
             db.flush()
             db.refresh(sale)

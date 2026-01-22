@@ -25,6 +25,9 @@ from neos_core.database.models.point_of_sale import PointOfSale
 # Modelos de ventas
 from neos_core.database.models.sales_model import Sale, SaleDetail
 
+# Modelos contables
+from neos_core.database.models.accounting_model import AccountingMove, AccountingLine
+
 # Exportar todos
 __all__ = [
     # Base
@@ -44,4 +47,7 @@ __all__ = [
     # Ventas
     "Sale",
     "SaleDetail",
+    # Contabilidad
+    "AccountingMove",
+    "AccountingLine",
 ]
