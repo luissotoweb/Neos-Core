@@ -126,6 +126,7 @@ def seed_products(db: Session, tenant_id: int):
             "min_stock": Decimal("10"),
             "tax_rate": Decimal("21.00"),
             "is_service": False,
+            "product_type": "stock",
             "is_active": True,
             "attributes": {"color": "Rojo", "talla": "M"}
         },
@@ -140,6 +141,7 @@ def seed_products(db: Session, tenant_id: int):
             "min_stock": Decimal("5"),
             "tax_rate": Decimal("10.50"),
             "is_service": False,
+            "product_type": "stock",
             "is_active": True
         },
         {
@@ -151,6 +153,7 @@ def seed_products(db: Session, tenant_id: int):
             "stock": Decimal("0"),
             "tax_rate": Decimal("21.00"),
             "is_service": True,
+            "product_type": "service",
             "is_active": True
         }
     ]
