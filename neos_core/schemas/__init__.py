@@ -4,10 +4,10 @@ Importación centralizada de todos los schemas
 """
 
 # Tenant
-from .tenant_schema import Tenant, TenantCreate, TenantUpdate
+from .tenant_schema import Tenant, TenantCreate
 
 # User
-from .user_schema import User, UserCreate, UserUpdate
+from .user_schema import User, UserCreate
 
 # Role
 from .role_schema import Role
@@ -27,14 +27,13 @@ from .product_schema import (
 from .config_schema import (
     Currency, 
     CurrencyCreate,
-    CurrencyUpdate,
     PointOfSale, 
     PointOfSaleCreate,
     PointOfSaleUpdate
 )
 
 # Client
-from .client_schema import Client, ClientCreate, ClientUpdate
+from .client_schema import Client, ClientCreate
 
 # Sales
 from .sales_schema import (
@@ -50,11 +49,9 @@ __all__ = [
     # Tenant
     "Tenant",
     "TenantCreate",
-    "TenantUpdate",
     # User
     "User",
     "UserCreate",
-    "UserUpdate",
     # Role
     "Role",
     # Auth
@@ -68,14 +65,12 @@ __all__ = [
     # Config
     "Currency",
     "CurrencyCreate",
-    "CurrencyUpdate",
     "PointOfSale",
     "PointOfSaleCreate",
     "PointOfSaleUpdate",
     # Client
     "Client",
     "ClientCreate",
-    "ClientUpdate",
     # Sales
     "SaleCreate",
     "SaleItemCreate",

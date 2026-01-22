@@ -13,15 +13,6 @@ class ClientBase(BaseModel):
 class ClientCreate(ClientBase):
     tenant_id: int
 
-class ClientUpdate(BaseModel):
-    full_name: Optional[str] = None
-    tax_id_type_id: Optional[int] = None
-    tax_id: Optional[str] = None
-    tax_responsibility_id: Optional[int] = None
-    email: Optional[EmailStr] = None
-    address: Optional[str] = None
-    phone: Optional[str] = None
-
 class Client(ClientBase):
     id: int
     tenant_id: int
