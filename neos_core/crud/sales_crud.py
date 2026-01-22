@@ -16,6 +16,13 @@ def create_sale(db: Session, tenant_id: int, user_id: int, sale_data: SaleCreate
             tenant = db.query(Tenant).filter_by(id=tenant_id, is_active=True).first()
             if not tenant:
                 raise HTTPException(403, "Tenant inválido o inactivo")
+            if tenant.electronic_invoicing_enabled and (
+                not sale_data.cae or not sale_data.invoice_type
+            ):
+                raise HTTPException(
+                    status.HTTP_400_BAD_REQUEST,
+                    "CAE y tipo de factura son obligatorios para facturación electrónica"
+                )
 
             pos = db.query(PointOfSale).filter_by(
                 id=sale_data.point_of_sale_id,
@@ -43,6 +50,11 @@ def create_sale(db: Session, tenant_id: int, user_id: int, sale_data: SaleCreate
                 point_of_sale_id=sale_data.point_of_sale_id,
                 currency_id=sale_data.currency_id,
                 payment_method=sale_data.payment_method,
+                exchange_rate=sale_data.exchange_rate,
+                invoice_type=sale_data.invoice_type,
+                cae=sale_data.cae,
+                cae_expiration=sale_data.cae_expiration,
+                invoice_number=sale_data.invoice_number,
                 status="completed"
             )
             db.add(sale)
