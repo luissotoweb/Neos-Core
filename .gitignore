@@ -50,10 +50,6 @@ env/
 *.sqlite3
 test_*.db
 
-# Alembic migrations (keep structure, ignore specific versions)
-alembic/versions/*.py
-!alembic/versions/__init__.py
-
 # Testing
 .coverage
 .coverage.*
