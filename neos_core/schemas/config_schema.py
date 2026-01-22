@@ -20,6 +20,13 @@ class CurrencyCreate(CurrencyBase):
     """Schema para crear moneda"""
     is_active: bool = Field(default=True)
 
+class CurrencyUpdate(BaseModel):
+    """Schema para actualizar moneda"""
+    name: Optional[str] = Field(None, min_length=1, max_length=50)
+    code: Optional[str] = Field(None, min_length=2, max_length=10, description="Ej: ARS, USD")
+    symbol: Optional[str] = Field(None, min_length=1, max_length=10, description="Ej: $, U$S")
+    is_active: Optional[bool] = None
+
 
 class Currency(CurrencyBase):
     """Schema de respuesta de moneda"""
@@ -49,6 +56,7 @@ class PointOfSaleCreate(PointOfSaleBase):
 class PointOfSaleUpdate(BaseModel):
     """Schema para actualizar punto de venta"""
     name: Optional[str] = Field(None, min_length=1, max_length=100)
+    code: Optional[str] = Field(None, min_length=1, max_length=20, description="Código único: POS-001")
     location: Optional[str] = Field(None, max_length=200)
     is_active: Optional[bool] = None
 

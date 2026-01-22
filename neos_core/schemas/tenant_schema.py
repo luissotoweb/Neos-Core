@@ -11,6 +11,14 @@ class TenantBase(BaseModel):
 class TenantCreate(TenantBase):
     pass
 
+class TenantUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    tax_id: Optional[str] = None
+    tax_id_type_id: Optional[int] = None
+    tax_responsibility_id: Optional[int] = None
+    is_active: Optional[bool] = None
+
 class Tenant(TenantBase):
     id: int
     is_active: bool

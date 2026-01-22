@@ -26,3 +26,19 @@ def read_tenants(skip: int = 0, limit: int = 100, db: Session = Depends(get_db),
     if current_user.role.name != "superadmin":
         raise HTTPException(status_code=403, detail="Acceso denegado.")
     return crud.get_tenants(db, skip=skip, limit=limit)
+
+@router.put("/{tenant_id}", response_model=schemas.Tenant)
+@router.patch("/{tenant_id}", response_model=schemas.Tenant)
+def update_tenant(
+        tenant_id: int,
+        tenant_update: schemas.TenantUpdate,
+        db: Session = Depends(get_db),
+        current_user: models.User = Depends(get_current_user)
+):
+    if current_user.role.name != "superadmin":
+        raise HTTPException(status_code=403, detail="Solo SuperAdmin.")
+
+    db_tenant = crud.update_tenant(db, tenant_id=tenant_id, tenant_update=tenant_update)
+    if not db_tenant:
+        raise HTTPException(status_code=404)
+    return db_tenant

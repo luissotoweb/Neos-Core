@@ -12,6 +12,15 @@ class UserCreate(UserBase):
     tenant_id: int
     role_id: int  # <--- Requerido para asignar el rol al crear
 
+
+class UserUpdate(BaseModel):
+    email: Optional[EmailStr] = None
+    full_name: Optional[str] = None
+    is_active: Optional[bool] = None
+    password: Optional[str] = None
+    tenant_id: Optional[int] = None
+    role_id: Optional[int] = None
+
 class User(UserBase):
     id: int
     tenant_id: int
