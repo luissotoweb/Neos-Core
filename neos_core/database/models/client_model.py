@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Boolean, Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 from neos_core.database.config import Base
 
@@ -20,6 +20,7 @@ class Client(Base):
 
     email = Column(String, nullable=True)
     address = Column(String, nullable=True)
+    is_active = Column(Boolean, nullable=False, default=True)
 
     # Relaciones de ORM
     tax_type = relationship("TaxIdType")

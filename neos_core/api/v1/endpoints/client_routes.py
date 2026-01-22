@@ -26,5 +26,26 @@ def create_new_client(client: schemas.ClientCreate, db: Session = Depends(get_db
 
 
 @router.get("/", response_model=List[schemas.Client])
-def read_clients(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    return crud.get_clients_by_tenant(db, tenant_id=current_user.tenant_id)
+def read_clients(
+    include_inactive: bool = False,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    return crud.get_clients_by_tenant(
+        db,
+        tenant_id=current_user.tenant_id,
+        include_inactive=include_inactive,
+    )
+
+
+@router.delete("/{client_id}", response_model=schemas.Client)
+def delete_client(
+    client_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    tenant_filter = None if current_user.role.name == "superadmin" else current_user.tenant_id
+    db_client = crud.soft_delete_client(db, client_id=client_id, tenant_id=tenant_filter)
+    if not db_client:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    return db_client

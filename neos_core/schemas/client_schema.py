@@ -9,6 +9,7 @@ class ClientBase(BaseModel):
     email: Optional[EmailStr] = None
     address: Optional[str] = None
     phone: Optional[str] = None
+    is_active: Optional[bool] = True
 
 class ClientCreate(ClientBase):
     tenant_id: int
