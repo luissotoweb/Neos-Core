@@ -47,6 +47,15 @@ from .sales_schema import (
     SaleListResponse,
     SaleFilters
 )
+# Analytics
+from .analytics_schema import (
+    DemandHistoryEntry,
+    DemandProductHistory,
+    NegativeMarginProduct,
+    LowStockProduct,
+    SaleDiscrepancy,
+    BasicAnomaliesResponse,
+)
 
 # Cash Count
 from .cash_count_schema import CashCountCreate, CashCountResponse
@@ -93,6 +102,13 @@ __all__ = [
     "SaleResponse",
     "SaleListResponse",
     "SaleFilters",
+    # Analytics
+    "DemandHistoryEntry",
+    "DemandProductHistory",
+    "NegativeMarginProduct",
+    "LowStockProduct",
+    "SaleDiscrepancy",
+    "BasicAnomaliesResponse",
     # Cash Count
     "CashCountCreate",
     "CashCountResponse",
