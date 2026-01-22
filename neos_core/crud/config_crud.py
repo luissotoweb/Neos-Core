@@ -10,7 +10,6 @@ from fastapi import HTTPException, status
 from neos_core.database.models import Currency, PointOfSale
 from neos_core.schemas.config_schema import (
     CurrencyCreate,
-    CurrencyUpdate,
     PointOfSaleCreate,
     PointOfSaleUpdate
 )
@@ -61,33 +60,6 @@ def create_currency(db: Session, currency: CurrencyCreate) -> Currency:
     return db_currency
 
 
-def update_currency(db: Session, currency_id: int, currency_update: CurrencyUpdate) -> Currency:
-    """Actualiza una moneda existente"""
-    db_currency = get_currency_by_id(db, currency_id)
-    if not db_currency:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Moneda no encontrada"
-        )
-
-    update_data = currency_update.model_dump(exclude_unset=True)
-
-    if "code" in update_data and update_data["code"] != db_currency.code:
-        existing = get_currency_by_code(db, update_data["code"])
-        if existing:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Ya existe una moneda con el código '{update_data['code']}'"
-            )
-
-    for field, value in update_data.items():
-        setattr(db_currency, field, value)
-
-    db.commit()
-    db.refresh(db_currency)
-    return db_currency
-
-
 # ============ CRUD PUNTOS DE VENTA ============
 
 def get_pos_by_tenant(
@@ -115,10 +87,6 @@ def get_pos_by_id(db: Session, pos_id: int, tenant_id: int) -> Optional[PointOfS
         PointOfSale.id == pos_id,
         PointOfSale.tenant_id == tenant_id
     ).first()
-
-def get_pos_by_id_global(db: Session, pos_id: int) -> Optional[PointOfSale]:
-    """Obtiene un punto de venta por ID sin restricción de tenant"""
-    return db.query(PointOfSale).filter(PointOfSale.id == pos_id).first()
 
 
 def get_pos_by_code(db: Session, code: str, tenant_id: int) -> Optional[PointOfSale]:
@@ -166,14 +134,6 @@ def update_pos(
 
     # Actualizar solo los campos que vinieron en el request
     update_data = pos_update.model_dump(exclude_unset=True)
-
-    if "code" in update_data and update_data["code"] != db_pos.code:
-        existing = get_pos_by_code(db, update_data["code"], tenant_id)
-        if existing:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Ya existe un punto de venta con el código '{update_data['code']}' en tu empresa"
-            )
 
     for field, value in update_data.items():
         setattr(db_pos, field, value)
