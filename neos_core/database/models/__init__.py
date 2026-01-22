@@ -28,6 +28,9 @@ from neos_core.database.models.tenant_onboarding_model import OnboardingPreset, 
 # Modelos de ventas
 from neos_core.database.models.sales_model import Sale, SaleDetail
 
+# Modelos contables
+from neos_core.database.models.accounting_model import AccountingMove, AccountingLine
+
 # Exportar todos
 __all__ = [
     # Base
@@ -49,8 +52,10 @@ __all__ = [
     # Ventas
     "Sale",
     "SaleDetail",
+    # Contabilidad
+    "AccountingMove",
+    "AccountingLine",
     # Onboarding
     "OnboardingPreset",
     "TenantOnboardingConfig",
-
 ]
