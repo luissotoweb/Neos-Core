@@ -13,7 +13,7 @@ from neos_core.database.models.role_model import Role
 from neos_core.database.models.tax_models import TaxIdType, TaxResponsibility
 
 # Modelos de inventario
-from neos_core.database.models.product_model import Product
+from neos_core.database.models.product_model import Product, ProductKit, ProductType
 
 # Modelos de clientes
 from neos_core.database.models.client_model import Client
@@ -39,6 +39,8 @@ __all__ = [
     "TaxResponsibility",
     # Inventario
     "Product",
+    "ProductKit",
+    "ProductType",
     # Clientes
     "Client",
     # Configuración
@@ -50,4 +52,5 @@ __all__ = [
     # Onboarding
     "OnboardingPreset",
     "TenantOnboardingConfig",
+
 ]

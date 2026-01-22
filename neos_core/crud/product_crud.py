@@ -6,12 +6,41 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from fastapi import HTTPException, status
 
-from neos_core.database.models import Product
+from neos_core.database.models import Product, ProductKit, ProductType
 from neos_core.schemas.product_schema import ProductCreate, ProductUpdate
+
+
+def _validate_unit_conversion(
+        purchase_unit: str,
+        sale_unit: str,
+        conversion_factor
+) -> None:
+    if not purchase_unit or not purchase_unit.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La unidad de compra es obligatoria"
+        )
+
+    if not sale_unit or not sale_unit.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La unidad de venta es obligatoria"
+        )
+
+    if conversion_factor is None or conversion_factor <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El factor de conversión debe ser mayor a 0"
+        )
 
 
 def create_product(db: Session, product: ProductCreate) -> Product:
     """Crea un nuevo producto"""
+    _validate_unit_conversion(
+        purchase_unit=product.purchase_unit,
+        sale_unit=product.sale_unit,
+        conversion_factor=product.conversion_factor
+    )
     # Verificar que no exista un producto con el mismo SKU en el tenant
     existing = db.query(Product).filter(
         Product.sku == product.sku,
@@ -24,8 +53,49 @@ def create_product(db: Session, product: ProductCreate) -> Product:
             detail=f"Ya existe un producto con el SKU '{product.sku}' en tu empresa"
         )
 
-    db_product = Product(**product.model_dump())
+    data = product.model_dump()
+    kit_components = data.pop("kit_components", None)
+
+    if data.get("is_service"):
+        data["product_type"] = ProductType.service
+    data["is_service"] = data.get("product_type") == ProductType.service
+
+    if kit_components and data.get("product_type") != ProductType.kit:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Solo puedes definir componentes si el producto es un kit"
+        )
+
+    if data.get("product_type") == ProductType.kit and not kit_components:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Un kit debe incluir componentes"
+        )
+
+    if kit_components:
+        component_ids = {component["component_product_id"] for component in kit_components}
+        components = db.query(Product).filter(
+            Product.id.in_(component_ids),
+            Product.tenant_id == product.tenant_id
+        ).all()
+        if len(components) != len(component_ids):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Hay componentes de kit inválidos para este tenant"
+            )
+
+    db_product = Product(**data)
     db.add(db_product)
+
+    if kit_components:
+        db.flush()
+        for component in kit_components:
+            db.add(ProductKit(
+                kit_product_id=db_product.id,
+                component_product_id=component["component_product_id"],
+                quantity=component["quantity"]
+            ))
+
     db.commit()
     db.refresh(db_product)
     return db_product
@@ -97,9 +167,72 @@ def update_product(
 
     # Actualizar solo los campos que vinieron en el request
     update_data = product_update.model_dump(exclude_unset=True)
+    kit_components = update_data.pop("kit_components", None)
+
+    if update_data.get("is_service"):
+        update_data["product_type"] = ProductType.service
+
+    if "product_type" in update_data:
+        update_data["is_service"] = update_data["product_type"] == ProductType.service
+
+    target_type = update_data.get("product_type", db_product.product_type)
+
+    if kit_components is not None and target_type != ProductType.kit:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Solo puedes definir componentes si el producto es un kit"
+        )
+
+    if target_type == ProductType.kit and kit_components is not None:
+        if not kit_components:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Un kit debe incluir componentes"
+            )
+        component_ids = {component["component_product_id"] for component in kit_components}
+        if db_product.id in component_ids:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Un kit no puede incluirse a sí mismo como componente"
+            )
+        components = db.query(Product).filter(
+            Product.id.in_(component_ids),
+            Product.tenant_id == db_product.tenant_id
+        ).all()
+        if len(components) != len(component_ids):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Hay componentes de kit inválidos para este tenant"
+            )
+
+    if {
+        "purchase_unit",
+        "sale_unit",
+        "conversion_factor"
+    }.intersection(update_data):
+        _validate_unit_conversion(
+            purchase_unit=update_data.get("purchase_unit", db_product.purchase_unit),
+            sale_unit=update_data.get("sale_unit", db_product.sale_unit),
+            conversion_factor=update_data.get("conversion_factor", db_product.conversion_factor)
+        )
 
     for field, value in update_data.items():
         setattr(db_product, field, value)
+
+    if target_type != ProductType.kit:
+        db.query(ProductKit).filter(
+            ProductKit.kit_product_id == db_product.id
+        ).delete()
+    elif kit_components is not None:
+        db.query(ProductKit).filter(
+            ProductKit.kit_product_id == db_product.id
+        ).delete()
+        for component in kit_components:
+            db.add(ProductKit(
+                kit_product_id=db_product.id,
+                component_product_id=component["component_product_id"],
+                quantity=component["quantity"]
+            ))
 
     db.commit()
     db.refresh(db_product)
@@ -134,6 +267,6 @@ def get_low_stock_products(db: Session, tenant_id: int) -> List[Product]:
     return db.query(Product).filter(
         Product.tenant_id == tenant_id,
         Product.is_active == True,
-        Product.is_service == False,  # Los servicios no tienen stock
+        Product.product_type == ProductType.stock,
         Product.stock <= Product.min_stock
     ).all()
