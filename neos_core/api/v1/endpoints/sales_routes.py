@@ -90,3 +90,31 @@ def cancel_sale(
         tenant_id=current_user.tenant_id,
         user_id=current_user.id
     )
+
+
+@router.post("/{sale_id}/pause", response_model=SaleResponse)
+def pause_sale(
+    sale_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(check_sale_permission)
+):
+    return sales_crud.pause_sale(
+        db=db,
+        sale_id=sale_id,
+        tenant_id=current_user.tenant_id,
+        user_id=current_user.id
+    )
+
+
+@router.post("/{sale_id}/resume", response_model=SaleResponse)
+def resume_sale(
+    sale_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(check_sale_permission)
+):
+    return sales_crud.resume_sale(
+        db=db,
+        sale_id=sale_id,
+        tenant_id=current_user.tenant_id,
+        user_id=current_user.id
+    )

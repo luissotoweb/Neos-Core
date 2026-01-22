@@ -441,6 +441,46 @@ def test_cancel_sale_success(client, db, sales_setup):
     assert product.stock == initial_stock
 
 
+def test_pause_and_resume_sale_flow(client, sales_setup):
+    """✅ Pausar y recuperar una venta"""
+    token = get_token(client, "seller.sales@empresaa.com", "password123")
+
+    sale_data = {
+        "client_id": sales_setup["client_a"].id,
+        "point_of_sale_id": sales_setup["pos_a"].id,
+        "currency_id": sales_setup["currency"].id,
+        "payment_method": "CASH",
+        "items": [
+            {
+                "product_id": sales_setup["product_a"].id,
+                "quantity": 2
+            }
+        ]
+    }
+
+    response = client.post(
+        "/api/v1/sales/",
+        json=sale_data,
+        headers={"Authorization": f"Bearer {token}"}
+    )
+    assert response.status_code == 201
+    sale_id = response.json()["id"]
+
+    pause_response = client.post(
+        f"/api/v1/sales/{sale_id}/pause",
+        headers={"Authorization": f"Bearer {token}"}
+    )
+    assert pause_response.status_code == 200
+    assert pause_response.json()["status"] == "on_hold"
+
+    resume_response = client.post(
+        f"/api/v1/sales/{sale_id}/resume",
+        headers={"Authorization": f"Bearer {token}"}
+    )
+    assert resume_response.status_code == 200
+    assert resume_response.json()["status"] == "completed"
+
+
 # ===== TEST DE LISTADO =====
 
 def test_list_sales_with_filters(client, db, sales_setup):

@@ -207,3 +207,45 @@ def cancel_sale(db: Session, sale_id: int, tenant_id: int, user_id: int) -> Sale
         db.flush()
         db.refresh(sale)
         return sale
+
+
+def pause_sale(db: Session, sale_id: int, tenant_id: int, user_id: int) -> Sale:
+    with db.begin():
+        sale = (
+            db.query(Sale)
+            .filter(Sale.id == sale_id, Sale.tenant_id == tenant_id)
+            .with_for_update()
+            .first()
+        )
+
+        if not sale:
+            raise HTTPException(404, "Venta no encontrada")
+
+        if sale.status != "completed":
+            raise HTTPException(400, "Solo se pueden pausar ventas completadas")
+
+        sale.status = "on_hold"
+        db.flush()
+        db.refresh(sale)
+        return sale
+
+
+def resume_sale(db: Session, sale_id: int, tenant_id: int, user_id: int) -> Sale:
+    with db.begin():
+        sale = (
+            db.query(Sale)
+            .filter(Sale.id == sale_id, Sale.tenant_id == tenant_id)
+            .with_for_update()
+            .first()
+        )
+
+        if not sale:
+            raise HTTPException(404, "Venta no encontrada")
+
+        if sale.status != "on_hold":
+            raise HTTPException(400, "Solo se pueden recuperar ventas en pausa")
+
+        sale.status = "completed"
+        db.flush()
+        db.refresh(sale)
+        return sale

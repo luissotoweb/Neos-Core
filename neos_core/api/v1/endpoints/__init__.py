@@ -9,6 +9,7 @@ from . import (
     config_routes,
     client_routes,
     sales_routes,
+    cash_count_routes
     accounting_routes
 )
 
@@ -19,5 +20,6 @@ __all__ = [
     "config_routes",
     "client_routes",
     "sales_routes",
+    "cash_count_routes",
     "accounting_routes",
 ]
