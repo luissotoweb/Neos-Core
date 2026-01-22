@@ -107,15 +107,12 @@ def create_sale(db: Session, tenant_id: int, user_id: int, sale_data: SaleCreate
                     for component_product, required_qty in component_requirements:
                         component_product.stock -= required_qty
 
-                elif product.product_type != ProductType.service:
-                    if product.stock < item.quantity:
+                elif product.product_type == ProductType.stock:
+                    conversion_factor = product.conversion_factor or Decimal("1")
+                    stock_to_deduct = item.quantity * conversion_factor
+                    if product.stock < stock_to_deduct:
                         raise HTTPException(400, f"Stock insuficiente para {product.name}")
-                    product.stock -= item.quantity
-                conversion_factor = product.conversion_factor or Decimal("1")
-                stock_to_deduct = item.quantity * conversion_factor
-
-                if product.stock < stock_to_deduct:
-                    raise HTTPException(400, f"Stock insuficiente para {product.name}")
+                    product.stock -= stock_to_deduct
 
                 unit_price = product.price
                 line_subtotal = (unit_price * item.quantity).quantize(money_quantizer)
@@ -124,8 +121,6 @@ def create_sale(db: Session, tenant_id: int, user_id: int, sale_data: SaleCreate
                     (line_subtotal * tax_rate) / Decimal("100")
                 ).quantize(money_quantizer)
                 line_total = (line_subtotal + tax_amount).quantize(money_quantizer)
-
-                product.stock -= stock_to_deduct
 
                 detail = SaleDetail(
                     sale_id=sale.id,

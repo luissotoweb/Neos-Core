@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from neos_core.database.models import (
     Tenant, User, Role, Product, Client,
     PointOfSale, Currency, Sale, SaleDetail,
-    TaxIdType, TaxResponsibility
+    TaxIdType, TaxResponsibility, ProductType
 )
 from neos_core.crud.user_crud import get_password_hash
 
@@ -255,6 +255,89 @@ def test_create_sale_product_from_other_tenant(client, sales_setup):
 
     assert response.status_code == 404
     assert "no pertenece" in response.json()["detail"].lower()
+
+
+def test_create_sale_with_conversion_factor_stock_deduction(client, db, sales_setup):
+    """✅ Descuenta stock usando conversion_factor una sola vez"""
+    token = get_token(client, "seller.sales@empresaa.com", "password123")
+
+    product = Product(
+        tenant_id=sales_setup["tenant_a"].id,
+        sku="SALES-PROD-CF",
+        name="Producto Conversión",
+        price=Decimal("50.00"),
+        cost=Decimal("20.00"),
+        stock=Decimal("10"),
+        conversion_factor=Decimal("2"),
+        tax_rate=Decimal("0.00"),
+        product_type=ProductType.stock,
+        is_active=True
+    )
+    db.add(product)
+    db.commit()
+
+    sale_data = {
+        "point_of_sale_id": sales_setup["pos_a"].id,
+        "currency_id": sales_setup["currency"].id,
+        "payment_method": "CASH",
+        "items": [
+            {
+                "product_id": product.id,
+                "quantity": 3
+            }
+        ]
+    }
+
+    response = client.post(
+        "/api/v1/sales/",
+        json=sale_data,
+        headers={"Authorization": f"Bearer {token}"}
+    )
+
+    assert response.status_code == 201
+    db.refresh(product)
+    assert product.stock == Decimal("4")  # 10 - (3 * 2)
+
+
+def test_create_sale_service_does_not_deduct_stock(client, db, sales_setup):
+    """✅ Servicios no descuentan stock"""
+    token = get_token(client, "seller.sales@empresaa.com", "password123")
+
+    service = Product(
+        tenant_id=sales_setup["tenant_a"].id,
+        sku="SALES-SERVICE-001",
+        name="Servicio Test",
+        price=Decimal("150.00"),
+        cost=Decimal("0.00"),
+        stock=Decimal("0"),
+        tax_rate=Decimal("0.00"),
+        product_type=ProductType.service,
+        is_active=True
+    )
+    db.add(service)
+    db.commit()
+
+    sale_data = {
+        "point_of_sale_id": sales_setup["pos_a"].id,
+        "currency_id": sales_setup["currency"].id,
+        "payment_method": "CASH",
+        "items": [
+            {
+                "product_id": service.id,
+                "quantity": 2
+            }
+        ]
+    }
+
+    response = client.post(
+        "/api/v1/sales/",
+        json=sale_data,
+        headers={"Authorization": f"Bearer {token}"}
+    )
+
+    assert response.status_code == 201
+    db.refresh(service)
+    assert service.stock == Decimal("0")
 
 
 # ===== TESTS DE FACTURACIÓN ELECTRÓNICA =====
