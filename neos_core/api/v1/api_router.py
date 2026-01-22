@@ -12,6 +12,7 @@ from neos_core.api.v1.endpoints import (
     config_routes,
     client_routes,
     sales_routes,  # ⭐ NUEVO
+    analytics_routes,
     ai_routes,
     cash_count_routes,
     accounting_routes,
@@ -62,6 +63,12 @@ api_router.include_router(
     sales_routes.router,
     # Ya tiene prefix="/sales" interno
     tags=["Sales"]
+)
+
+# 📊 Analytics
+api_router.include_router(
+    analytics_routes.router,
+    tags=["Analytics"]
 )
 
 # 🤖 AI
