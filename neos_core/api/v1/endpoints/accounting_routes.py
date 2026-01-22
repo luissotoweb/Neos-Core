@@ -14,11 +14,59 @@ from neos_core.schemas.accounting_schema import (
     AccountingClosePeriodRequest,
     AccountingClosePeriodResponse,
     AccountingDraftFilters,
-    AccountingMoveResponse
+    AccountingMoveCreate,
+    AccountingMovePatch,
+    AccountingMoveResponse,
+    AccountingMoveUpdate
 )
 from neos_core.security.security_deps import get_current_user
 
 router = APIRouter(prefix="/accounting", tags=["Accounting"])
+
+
+@router.post("/moves", response_model=AccountingMoveResponse, status_code=201)
+def create_manual_move(
+    payload: AccountingMoveCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    return accounting_crud.create_manual_move(
+        db=db,
+        tenant_id=current_user.tenant_id,
+        move_data=payload
+    )
+
+
+@router.put("/moves/{move_id}", response_model=AccountingMoveResponse)
+def update_move(
+    move_id: int,
+    payload: AccountingMoveUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    return accounting_crud.update_draft_move(
+        db=db,
+        tenant_id=current_user.tenant_id,
+        move_id=move_id,
+        move_data=payload,
+        partial=False
+    )
+
+
+@router.patch("/moves/{move_id}", response_model=AccountingMoveResponse)
+def patch_move(
+    move_id: int,
+    payload: AccountingMovePatch,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    return accounting_crud.update_draft_move(
+        db=db,
+        tenant_id=current_user.tenant_id,
+        move_id=move_id,
+        move_data=payload,
+        partial=True
+    )
 
 
 @router.get("/moves/drafts", response_model=List[AccountingMoveResponse])

@@ -8,6 +8,40 @@ from pydantic import BaseModel, Field
 AccountingStatus = Literal["draft", "posted"]
 
 
+class AccountingLineCreate(BaseModel):
+    account_code: str = Field(..., min_length=1)
+    description: Optional[str]
+    debit: Decimal = Field(default=0, ge=0)
+    credit: Decimal = Field(default=0, ge=0)
+
+
+class AccountingMoveCreate(BaseModel):
+    currency_id: int = Field(..., gt=0)
+    description: Optional[str]
+    move_date: datetime
+    period_year: int = Field(..., ge=2000)
+    period_month: int = Field(..., ge=1, le=12)
+    lines: List[AccountingLineCreate] = Field(..., min_length=1)
+
+
+class AccountingMoveUpdate(BaseModel):
+    currency_id: int = Field(..., gt=0)
+    description: Optional[str]
+    move_date: datetime
+    period_year: int = Field(..., ge=2000)
+    period_month: int = Field(..., ge=1, le=12)
+    lines: List[AccountingLineCreate] = Field(..., min_length=1)
+
+
+class AccountingMovePatch(BaseModel):
+    currency_id: Optional[int] = Field(default=None, gt=0)
+    description: Optional[str] = None
+    move_date: Optional[datetime] = None
+    period_year: Optional[int] = Field(default=None, ge=2000)
+    period_month: Optional[int] = Field(default=None, ge=1, le=12)
+    lines: Optional[List[AccountingLineCreate]] = None
+
+
 class AccountingLineResponse(BaseModel):
     id: int
     account_code: str
