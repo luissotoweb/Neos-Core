@@ -34,6 +34,13 @@ def read_users(
     return crud.get_visible_users(db, current_user=current_user, skip=skip, limit=limit)
 
 
+@router.get("/me", response_model=schemas.User)
+def read_current_user(
+        current_user: models.User = Depends(get_current_user)
+):
+    return current_user
+
+
 @router.get("/{user_id}", response_model=schemas.User)
 def read_user(
         user_id: int,
