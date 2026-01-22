@@ -1,6 +1,7 @@
 from enum import Enum
 
 from sqlalchemy import Column, Integer, String, Numeric, Boolean, ForeignKey, Text, DateTime, JSON, Enum as SqlEnum
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from neos_core.database.config import Base
@@ -26,13 +27,16 @@ class Product(Base):
     cost = Column(Numeric(10, 2), nullable=False, default=0)
     price = Column(Numeric(10, 2), nullable=False)
 
+    purchase_unit = Column(String(50), nullable=False, default="unit")
+    sale_unit = Column(String(50), nullable=False, default="unit")
+    conversion_factor = Column(Numeric(10, 4), nullable=False, default=1)
+
     stock = Column(Numeric(10, 4), nullable=False, default=0)
     min_stock = Column(Numeric(10, 4), nullable=True)
 
     tax_rate = Column(Numeric(5, 2), nullable=False, default=0)
 
-    # IMPORTANTE: Solo JSON, sin JSONB
-    attributes = Column(JSON, nullable=True)
+    attributes = Column(JSONB, nullable=True)
 
     product_type = Column(SqlEnum(ProductType, name="product_type"), nullable=False, default=ProductType.stock)
     is_active = Column(Boolean, default=True, nullable=False)

@@ -42,6 +42,15 @@ class ProductBase(BaseModel):
     stock: Decimal = Field(default=Decimal("0"), ge=0)
     min_stock: Optional[Decimal] = Field(None, ge=0, description="Stock mínimo de alerta")
 
+    # Unidades y conversión
+    purchase_unit: str = Field(default="unit", min_length=1, max_length=50)
+    sale_unit: str = Field(default="unit", min_length=1, max_length=50)
+    conversion_factor: Decimal = Field(
+        default=Decimal("1"),
+        gt=0,
+        description="Equivalencia de unidad de venta a unidad de compra"
+    )
+
     # Impuestos
     tax_rate: Decimal = Field(default=Decimal("0"), ge=0, le=100, description="Tasa de impuesto (%)")
 
@@ -82,6 +91,9 @@ class ProductUpdate(BaseModel):
         default=None,
         description="Componentes del kit si product_type=kit"
     )
+    purchase_unit: Optional[str] = Field(None, min_length=1, max_length=50)
+    sale_unit: Optional[str] = Field(None, min_length=1, max_length=50)
+    conversion_factor: Optional[Decimal] = Field(None, gt=0)
 
 
 class Product(ProductBase):

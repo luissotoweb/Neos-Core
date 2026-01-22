@@ -16,6 +16,13 @@ def create_sale(db: Session, tenant_id: int, user_id: int, sale_data: SaleCreate
             tenant = db.query(Tenant).filter_by(id=tenant_id, is_active=True).first()
             if not tenant:
                 raise HTTPException(403, "Tenant inválido o inactivo")
+            if tenant.electronic_invoicing_enabled and (
+                not sale_data.cae or not sale_data.invoice_type
+            ):
+                raise HTTPException(
+                    status.HTTP_400_BAD_REQUEST,
+                    "CAE y tipo de factura son obligatorios para facturación electrónica"
+                )
 
             pos = db.query(PointOfSale).filter_by(
                 id=sale_data.point_of_sale_id,
@@ -43,6 +50,11 @@ def create_sale(db: Session, tenant_id: int, user_id: int, sale_data: SaleCreate
                 point_of_sale_id=sale_data.point_of_sale_id,
                 currency_id=sale_data.currency_id,
                 payment_method=sale_data.payment_method,
+                exchange_rate=sale_data.exchange_rate,
+                invoice_type=sale_data.invoice_type,
+                cae=sale_data.cae,
+                cae_expiration=sale_data.cae_expiration,
+                invoice_number=sale_data.invoice_number,
                 status="completed"
             )
             db.add(sale)
@@ -50,6 +62,7 @@ def create_sale(db: Session, tenant_id: int, user_id: int, sale_data: SaleCreate
 
             subtotal = Decimal("0")
             tax_total = Decimal("0")
+            money_quantizer = Decimal("0.01")
 
             for item in sale_data.items:
 
@@ -97,12 +110,21 @@ def create_sale(db: Session, tenant_id: int, user_id: int, sale_data: SaleCreate
                     if product.stock < item.quantity:
                         raise HTTPException(400, f"Stock insuficiente para {product.name}")
                     product.stock -= item.quantity
+                conversion_factor = product.conversion_factor or Decimal("1")
+                stock_to_deduct = item.quantity * conversion_factor
+
+                if product.stock < stock_to_deduct:
+                    raise HTTPException(400, f"Stock insuficiente para {product.name}")
 
                 unit_price = product.price
-                line_subtotal = unit_price * item.quantity
-                tax_rate = Decimal("0")
-                tax_amount = Decimal("0")
-                line_total = line_subtotal + tax_amount
+                line_subtotal = (unit_price * item.quantity).quantize(money_quantizer)
+                tax_rate = product.tax_rate or Decimal("0")
+                tax_amount = (
+                    (line_subtotal * tax_rate) / Decimal("100")
+                ).quantize(money_quantizer)
+                line_total = (line_subtotal + tax_amount).quantize(money_quantizer)
+
+                product.stock -= stock_to_deduct
 
                 detail = SaleDetail(
                     sale_id=sale.id,
@@ -120,9 +142,9 @@ def create_sale(db: Session, tenant_id: int, user_id: int, sale_data: SaleCreate
                 subtotal += line_subtotal
                 tax_total += tax_amount
 
-            sale.subtotal = subtotal
-            sale.tax_amount = tax_total
-            sale.total = subtotal + tax_total
+            sale.subtotal = subtotal.quantize(money_quantizer)
+            sale.tax_amount = tax_total.quantize(money_quantizer)
+            sale.total = (sale.subtotal + sale.tax_amount).quantize(money_quantizer)
 
             db.flush()
             db.refresh(sale)
@@ -175,7 +197,8 @@ def cancel_sale(db: Session, sale_id: int, tenant_id: int, user_id: int) -> Sale
 
         for item in sale.items:
             product = db.query(Product).filter_by(id=item.product_id).with_for_update().first()
-            product.stock += item.quantity
+            conversion_factor = product.conversion_factor or Decimal("1")
+            product.stock += item.quantity * conversion_factor
 
         sale.status = "cancelled"
         db.flush()

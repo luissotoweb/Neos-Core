@@ -10,8 +10,37 @@ from neos_core.database.models import Product, ProductKit, ProductType
 from neos_core.schemas.product_schema import ProductCreate, ProductUpdate
 
 
+def _validate_unit_conversion(
+        purchase_unit: str,
+        sale_unit: str,
+        conversion_factor
+) -> None:
+    if not purchase_unit or not purchase_unit.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La unidad de compra es obligatoria"
+        )
+
+    if not sale_unit or not sale_unit.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La unidad de venta es obligatoria"
+        )
+
+    if conversion_factor is None or conversion_factor <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El factor de conversión debe ser mayor a 0"
+        )
+
+
 def create_product(db: Session, product: ProductCreate) -> Product:
     """Crea un nuevo producto"""
+    _validate_unit_conversion(
+        purchase_unit=product.purchase_unit,
+        sale_unit=product.sale_unit,
+        conversion_factor=product.conversion_factor
+    )
     # Verificar que no exista un producto con el mismo SKU en el tenant
     existing = db.query(Product).filter(
         Product.sku == product.sku,
@@ -175,6 +204,17 @@ def update_product(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Hay componentes de kit inválidos para este tenant"
             )
+
+    if {
+        "purchase_unit",
+        "sale_unit",
+        "conversion_factor"
+    }.intersection(update_data):
+        _validate_unit_conversion(
+            purchase_unit=update_data.get("purchase_unit", db_product.purchase_unit),
+            sale_unit=update_data.get("sale_unit", db_product.sale_unit),
+            conversion_factor=update_data.get("conversion_factor", db_product.conversion_factor)
+        )
 
     for field, value in update_data.items():
         setattr(db_product, field, value)
