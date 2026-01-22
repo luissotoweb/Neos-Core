@@ -23,3 +23,19 @@ def create_tenant(db: Session, tenant: schemas.TenantCreate):
 
 def get_tenants(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Tenant).offset(skip).limit(limit).all()
+
+
+def update_tenant(db: Session, tenant_id: int, tenant_update: schemas.TenantUpdate):
+    """Actualiza parcialmente un Tenant existente."""
+    db_tenant = get_tenant_by_id(db, tenant_id=tenant_id)
+    if not db_tenant:
+        return None
+
+    update_data = tenant_update.model_dump(exclude_unset=True)
+
+    for field, value in update_data.items():
+        setattr(db_tenant, field, value)
+
+    db.commit()
+    db.refresh(db_tenant)
+    return db_tenant
