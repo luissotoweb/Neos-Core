@@ -77,3 +77,12 @@ def get_visible_users(db: Session, current_user: models.User, skip: int = 0, lim
     return db.query(models.User).filter(
         models.User.tenant_id == current_user.tenant_id
     ).offset(skip).limit(limit).all()
+
+
+def update_user(db: Session, db_user: models.User, user_update: schemas.UserUpdate):
+    update_data = user_update.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_user, field, value)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
