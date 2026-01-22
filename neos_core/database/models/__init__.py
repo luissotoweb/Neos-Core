@@ -25,6 +25,9 @@ from neos_core.database.models.point_of_sale import PointOfSale
 # Modelos de ventas
 from neos_core.database.models.sales_model import Sale, SaleDetail
 
+# Modelos de IA
+from neos_core.database.models.ai_interaction_model import AIInteraction
+
 # Exportar todos
 __all__ = [
     # Base
@@ -44,4 +47,6 @@ __all__ = [
     # Ventas
     "Sale",
     "SaleDetail",
+    # IA
+    "AIInteraction",
 ]

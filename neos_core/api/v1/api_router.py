@@ -11,7 +11,8 @@ from neos_core.api.v1.endpoints import (
     product_routes,  # Renombrado de inventory_routes
     config_routes,
     client_routes,
-    sales_routes  # ⭐ NUEVO
+    sales_routes,  # ⭐ NUEVO
+    ai_routes
 )
 
 # Crear router principal
@@ -59,4 +60,10 @@ api_router.include_router(
     sales_routes.router,
     # Ya tiene prefix="/sales" interno
     tags=["Sales"]
+)
+
+# 🤖 AI
+api_router.include_router(
+    ai_routes.router,
+    tags=["AI"]
 )

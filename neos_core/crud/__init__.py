@@ -66,6 +66,11 @@ from .sales_crud import (
     cancel_sale
 )
 
+# AI CRUD
+from .ai_crud import (
+    create_ai_interaction,
+)
+
 __all__ = [
     # Tenant
     "get_tenant_by_name",
@@ -110,4 +115,6 @@ __all__ = [
     "get_sale_by_id",
     "get_sales",
     "cancel_sale",
+    # AI
+    "create_ai_interaction",
 ]
