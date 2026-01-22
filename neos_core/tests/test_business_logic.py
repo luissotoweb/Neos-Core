@@ -56,6 +56,35 @@ def test_client_full_coverage(client, admin_headers):
     assert res.status_code == 400
 
 
+def test_client_update_contact_and_tax_data(client, admin_headers):
+    payload = {
+        "full_name": "Servicios Nova S.R.L.",
+        "tax_id_type_id": 1,
+        "tax_id": "30-33333333-4",
+        "tax_responsibility_id": 1,
+        "tenant_id": 1,
+        "email": "info@nova.com"
+    }
+
+    res = client.post("/api/v1/clients/", json=payload, headers=admin_headers)
+    assert res.status_code in [200, 201]
+    client_id = res.json()["id"]
+
+    update_payload = {
+        "tax_id": "30-33333333-5",
+        "email": "contacto@nova.com",
+        "phone": "123456789",
+        "address": "Calle Falsa 123"
+    }
+    res = client.patch(f"/api/v1/clients/{client_id}", json=update_payload, headers=admin_headers)
+    assert res.status_code == 200
+    data = res.json()
+    assert data["tax_id"] == "30-33333333-5"
+    assert data["email"] == "contacto@nova.com"
+    assert data["phone"] == "123456789"
+    assert data["address"] == "Calle Falsa 123"
+
+
 def test_pos_management(client, admin_headers):
     url = "/api/v1/config/pos"
 

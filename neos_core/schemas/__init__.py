@@ -7,7 +7,7 @@ Importación centralizada de todos los schemas
 from .tenant_schema import Tenant, TenantCreate, TenantOnboardingCreate, TenantOnboardingResponse
 
 # User
-from .user_schema import User, UserCreate
+from .user_schema import User, UserCreate, UserUpdate
 
 # Role
 from .role_schema import Role
@@ -36,7 +36,7 @@ from .config_schema import (
 )
 
 # Client
-from .client_schema import Client, ClientCreate
+from .client_schema import Client, ClientCreate, ClientUpdate
 
 # Sales
 from .sales_schema import (
@@ -60,6 +60,7 @@ __all__ = [
     # User
     "User",
     "UserCreate",
+    "UserUpdate",
     # Role
     "Role",
     # Auth
@@ -82,6 +83,7 @@ __all__ = [
     # Client
     "Client",
     "ClientCreate",
+    "ClientUpdate",
     # Sales
     "SaleCreate",
     "SaleItemCreate",

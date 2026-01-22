@@ -73,6 +73,31 @@ def test_login_non_existent_user(client):
     assert "Credenciales incorrectas" in res.json()["detail"]
 
 
+def test_update_user_role_email_status(client, superadmin_headers):
+    payload = {
+        "email": "update_me@test.com",
+        "password": "password123",
+        "full_name": "Update Me",
+        "tenant_id": 1,
+        "role_id": 2
+    }
+    res = client.post("/api/v1/users/", json=payload, headers=superadmin_headers)
+    assert res.status_code == 201
+    user_id = res.json()["id"]
+
+    update_payload = {
+        "email": "updated_user@test.com",
+        "role_id": 3,
+        "is_active": False
+    }
+    res = client.patch(f"/api/v1/users/{user_id}", json=update_payload, headers=superadmin_headers)
+    assert res.status_code == 200
+    data = res.json()
+    assert data["email"] == "updated_user@test.com"
+    assert data["role_id"] == 3
+    assert data["is_active"] is False
+
+
 
 def test_get_user_by_id_coverage(client, db, superadmin_headers):
     db.commit()

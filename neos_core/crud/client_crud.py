@@ -28,6 +28,21 @@ def get_client_by_tax_id(db: Session, tax_id: str, tenant_id: int):
         models.Client.tenant_id == tenant_id
     ).first()
 
+def get_client_by_id(db: Session, client_id: int, tenant_id: Optional[int] = None):
+    query = db.query(models.Client).filter(models.Client.id == client_id)
+    if tenant_id is not None:
+        query = query.filter(models.Client.tenant_id == tenant_id)
+    return query.first()
+
+
+def update_client(db: Session, db_client: models.Client, client_update: schemas.ClientUpdate):
+    update_data = client_update.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_client, field, value)
+    db.commit()
+    db.refresh(db_client)
+    return db_client
+
 
 def soft_delete_client(db: Session, client_id: int, tenant_id: Optional[int] = None):
     query = db.query(models.Client).filter(models.Client.id == client_id)

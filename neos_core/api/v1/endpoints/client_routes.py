@@ -49,3 +49,56 @@ def delete_client(
     if not db_client:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
     return db_client
+
+
+def _update_client(
+    client_id: int,
+    client_update: schemas.ClientUpdate,
+    db: Session,
+    current_user: models.User,
+):
+    tenant_filter = None if current_user.role.name == "superadmin" else current_user.tenant_id
+    db_client = crud.get_client_by_id(db, client_id=client_id, tenant_id=tenant_filter)
+    if not db_client:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+
+    if client_update.tax_id and client_update.tax_id != db_client.tax_id:
+        existing = crud.get_client_by_tax_id(
+            db,
+            tax_id=client_update.tax_id,
+            tenant_id=db_client.tenant_id,
+        )
+        if existing:
+            raise HTTPException(status_code=400, detail="Este cliente (Tax ID) ya está registrado en tu empresa")
+
+    return crud.update_client(db=db, db_client=db_client, client_update=client_update)
+
+
+@router.put("/{client_id}", response_model=schemas.Client)
+def update_client(
+    client_id: int,
+    client_update: schemas.ClientUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    return _update_client(
+        client_id=client_id,
+        client_update=client_update,
+        db=db,
+        current_user=current_user,
+    )
+
+
+@router.patch("/{client_id}", response_model=schemas.Client)
+def patch_client(
+    client_id: int,
+    client_update: schemas.ClientUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    return _update_client(
+        client_id=client_id,
+        client_update=client_update,
+        db=db,
+        current_user=current_user,
+    )
