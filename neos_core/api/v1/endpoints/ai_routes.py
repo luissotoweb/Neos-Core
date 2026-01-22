@@ -8,9 +8,11 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, s
 from sqlalchemy.orm import Session
 
 from neos_core.database.config import get_db
+from neos_core.database import models
 from neos_core.database.models import User
 from neos_core.security.security_deps import get_current_user
 from neos_core.schemas.ai_schema import CatalogProductResponse, NLPSQLRequest, NLPSQLResponse
+from neos_core.schemas.expense_schema import ExpenseSuggestionRequest, ExpenseSuggestionResponse
 from neos_core.services.ai_client import AIClient
 from neos_core.crud import create_ai_interaction
 
@@ -189,5 +191,84 @@ def nlp_to_sql(
         model=client.settings.model,
         sql=sql_clean,
         notes=notes,
+        raw_response=response_text,
+    )
+
+
+@router.post("/expense-suggest", response_model=ExpenseSuggestionResponse)
+def suggest_expense_account(
+    payload: ExpenseSuggestionRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Sugiere una cuenta contable para un gasto usando IA.
+    """
+    try:
+        client = AIClient.from_env()
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
+
+    system_prompt = (
+        "Eres un asistente contable. "
+        "Devuelve un JSON con la llave account_code para la cuenta sugerida. "
+        "Responde solo con JSON."
+    )
+    user_prompt = (
+        f"Descripción del gasto: {payload.description}. "
+        f"Monto: {payload.amount}."
+    )
+
+    result = client.generate_text(
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        temperature=0.2,
+        max_tokens=200,
+    )
+
+    response_text = result.get("text", "")
+    response_payload = _extract_json_payload(response_text)
+    suggested_account = (
+        response_payload.get("account_code")
+        or response_payload.get("suggested_account")
+        or response_text.strip()
+    )
+
+    expense = models.Expense(
+        tenant_id=current_user.tenant_id,
+        description=payload.description,
+        amount=payload.amount,
+        suggested_account=suggested_account,
+    )
+    db.add(expense)
+    db.commit()
+    db.refresh(expense)
+
+    create_ai_interaction(
+        db,
+        tenant_id=current_user.tenant_id,
+        user_id=current_user.id,
+        provider=client.provider,
+        model=client.settings.model,
+        operation="expense_suggest_account",
+        prompt=f"{system_prompt}\n{user_prompt}",
+        response=response_text,
+        request_metadata={
+            "description": payload.description,
+            "amount": str(payload.amount),
+        },
+        response_metadata={
+            "suggested_account": suggested_account,
+            "expense_id": expense.id,
+        },
+    )
+
+    return ExpenseSuggestionResponse(
+        provider=client.provider,
+        model=client.settings.model,
+        suggested_account=suggested_account,
+        expense=expense,
         raw_response=response_text,
     )

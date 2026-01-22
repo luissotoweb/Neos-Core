@@ -50,6 +50,8 @@ from .sales_schema import (
 
 # Cash Count
 from .cash_count_schema import CashCountCreate, CashCountResponse
+# Expense
+from .expense_schema import ExpenseResponse, ExpenseSuggestionRequest, ExpenseSuggestionResponse
 
 __all__ = [
     # Tenant
@@ -94,4 +96,8 @@ __all__ = [
     # Cash Count
     "CashCountCreate",
     "CashCountResponse",
+    # Expense
+    "ExpenseResponse",
+    "ExpenseSuggestionRequest",
+    "ExpenseSuggestionResponse",
 ]
