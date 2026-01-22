@@ -90,6 +90,12 @@ FastAPI genera automáticamente documentación interactiva:
 
 ---
 
+## 📘 Documentación Funcional
+
+Consulta la especificación funcional y el roadmap en [docs/nexus-pyme.md](docs/nexus-pyme.md).
+
+---
+
 ## 🗂️ Estructura Modular del Proyecto
 
 ```
