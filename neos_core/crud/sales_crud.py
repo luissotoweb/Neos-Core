@@ -50,6 +50,7 @@ def create_sale(db: Session, tenant_id: int, user_id: int, sale_data: SaleCreate
 
             subtotal = Decimal("0")
             tax_total = Decimal("0")
+            money_quantizer = Decimal("0.01")
 
             for item in sale_data.items:
 
@@ -67,10 +68,12 @@ def create_sale(db: Session, tenant_id: int, user_id: int, sale_data: SaleCreate
                     raise HTTPException(400, f"Stock insuficiente para {product.name}")
 
                 unit_price = product.price
-                line_subtotal = unit_price * item.quantity
-                tax_rate = Decimal("0")
-                tax_amount = Decimal("0")
-                line_total = line_subtotal + tax_amount
+                line_subtotal = (unit_price * item.quantity).quantize(money_quantizer)
+                tax_rate = product.tax_rate or Decimal("0")
+                tax_amount = (
+                    (line_subtotal * tax_rate) / Decimal("100")
+                ).quantize(money_quantizer)
+                line_total = (line_subtotal + tax_amount).quantize(money_quantizer)
 
                 product.stock -= item.quantity
 
@@ -90,9 +93,9 @@ def create_sale(db: Session, tenant_id: int, user_id: int, sale_data: SaleCreate
                 subtotal += line_subtotal
                 tax_total += tax_amount
 
-            sale.subtotal = subtotal
-            sale.tax_amount = tax_total
-            sale.total = subtotal + tax_total
+            sale.subtotal = subtotal.quantize(money_quantizer)
+            sale.tax_amount = tax_total.quantize(money_quantizer)
+            sale.total = (sale.subtotal + sale.tax_amount).quantize(money_quantizer)
 
             db.flush()
             db.refresh(sale)
