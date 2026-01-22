@@ -39,7 +39,7 @@ class SaleItemResponse(BaseModel):
 
 # ============ SALE ============
 
-SaleStatus = Literal["completed", "cancelled"]
+SaleStatus = Literal["completed", "cancelled", "on_hold"]
 
 class SaleCreate(BaseModel):
     client_id: Optional[int] = Field(None, description="Cliente opcional")
@@ -89,6 +89,6 @@ class SaleFilters(BaseModel):
     client_id: Optional[int] = None
     point_of_sale_id: Optional[int] = None
     payment_method: Optional[str] = None
-    status: Optional[str] = None
+    status: Optional[SaleStatus] = None
     skip: int = 0
     limit: int = Field(default=50, ge=1, le=100)

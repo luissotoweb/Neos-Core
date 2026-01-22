@@ -63,7 +63,15 @@ from .sales_crud import (
     create_sale,
     get_sale_by_id,
     get_sales,
-    cancel_sale
+    cancel_sale,
+    pause_sale,
+    resume_sale
+)
+
+# Cash Count CRUD
+from .cash_count_crud import (
+    create_cash_count,
+    get_cash_count
 )
 
 __all__ = [
@@ -110,4 +118,9 @@ __all__ = [
     "get_sale_by_id",
     "get_sales",
     "cancel_sale",
+    "pause_sale",
+    "resume_sale",
+    # Cash Count
+    "create_cash_count",
+    "get_cash_count",
 ]

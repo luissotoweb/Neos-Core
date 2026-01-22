@@ -21,6 +21,7 @@ from neos_core.database.models.client_model import Client
 # Modelos de configuración (importar de archivos separados)
 from neos_core.database.models.currency_model import Currency
 from neos_core.database.models.point_of_sale import PointOfSale
+from neos_core.database.models.cash_count import CashCount
 
 # Modelos de ventas
 from neos_core.database.models.sales_model import Sale, SaleDetail
@@ -41,6 +42,7 @@ __all__ = [
     # Configuración
     "Currency",
     "PointOfSale",
+    "CashCount",
     # Ventas
     "Sale",
     "SaleDetail",
