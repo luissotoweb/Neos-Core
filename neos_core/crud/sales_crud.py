@@ -63,7 +63,10 @@ def create_sale(db: Session, tenant_id: int, user_id: int, sale_data: SaleCreate
                 if not product:
                     raise HTTPException(404, f"Producto {item.product_id} no existe")
 
-                if product.stock < item.quantity:
+                conversion_factor = product.conversion_factor or Decimal("1")
+                stock_to_deduct = item.quantity * conversion_factor
+
+                if product.stock < stock_to_deduct:
                     raise HTTPException(400, f"Stock insuficiente para {product.name}")
 
                 unit_price = product.price
@@ -72,7 +75,7 @@ def create_sale(db: Session, tenant_id: int, user_id: int, sale_data: SaleCreate
                 tax_amount = Decimal("0")
                 line_total = line_subtotal + tax_amount
 
-                product.stock -= item.quantity
+                product.stock -= stock_to_deduct
 
                 detail = SaleDetail(
                     sale_id=sale.id,
@@ -145,7 +148,8 @@ def cancel_sale(db: Session, sale_id: int, tenant_id: int, user_id: int) -> Sale
 
         for item in sale.items:
             product = db.query(Product).filter_by(id=item.product_id).with_for_update().first()
-            product.stock += item.quantity
+            conversion_factor = product.conversion_factor or Decimal("1")
+            product.stock += item.quantity * conversion_factor
 
         sale.status = "cancelled"
         db.flush()

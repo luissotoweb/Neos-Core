@@ -18,6 +18,10 @@ class Product(Base):
     cost = Column(Numeric(10, 2), nullable=False, default=0)
     price = Column(Numeric(10, 2), nullable=False)
 
+    purchase_unit = Column(String(50), nullable=False, default="unit")
+    sale_unit = Column(String(50), nullable=False, default="unit")
+    conversion_factor = Column(Numeric(10, 4), nullable=False, default=1)
+
     stock = Column(Numeric(10, 4), nullable=False, default=0)
     min_stock = Column(Numeric(10, 4), nullable=True)
 

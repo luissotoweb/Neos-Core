@@ -4,6 +4,7 @@ Endpoints para gestión de productos (inventario)
 Incluye: CREATE, READ, UPDATE, DELETE y búsquedas especiales
 """
 from typing import List, Optional
+from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
@@ -19,6 +20,30 @@ from neos_core.schemas.product_schema import (
 from neos_core.crud import product_crud as crud
 
 router = APIRouter()
+
+
+def _validate_unit_conversion(
+        purchase_unit: Optional[str],
+        sale_unit: Optional[str],
+        conversion_factor: Optional[Decimal]
+) -> None:
+    if purchase_unit is not None and not purchase_unit.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La unidad de compra no puede estar vacía"
+        )
+
+    if sale_unit is not None and not sale_unit.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La unidad de venta no puede estar vacía"
+        )
+
+    if conversion_factor is not None and conversion_factor <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El factor de conversión debe ser mayor a 0"
+        )
 
 
 # ===== DEPENDENCIA DE PERMISOS =====
@@ -60,6 +85,12 @@ def create_product(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="No puedes crear productos para otra empresa"
         )
+
+    _validate_unit_conversion(
+        purchase_unit=product.purchase_unit,
+        sale_unit=product.sale_unit,
+        conversion_factor=product.conversion_factor
+    )
 
     return crud.create_product(db=db, product=product)
 
@@ -190,6 +221,12 @@ def update_product(
     """
     # Determinar tenant_id según permisos
     tenant_id = None if current_user.role.name == "superadmin" else current_user.tenant_id
+
+    _validate_unit_conversion(
+        purchase_unit=product_update.purchase_unit,
+        sale_unit=product_update.sale_unit,
+        conversion_factor=product_update.conversion_factor
+    )
 
     return crud.update_product(
         db=db,
