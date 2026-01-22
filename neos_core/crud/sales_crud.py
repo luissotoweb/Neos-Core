@@ -4,7 +4,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from fastapi import HTTPException, status
 
 from neos_core.database.models import (
-    Sale, SaleDetail, Product, Tenant, Client, PointOfSale, Currency
+    Sale, SaleDetail, Product, ProductKit, ProductType, Tenant, Client, PointOfSale, Currency
 )
 from neos_core.schemas.sales_schema import SaleCreate, SaleFilters
 
@@ -76,6 +76,40 @@ def create_sale(db: Session, tenant_id: int, user_id: int, sale_data: SaleCreate
                 if not product:
                     raise HTTPException(404, f"Producto {item.product_id} no existe")
 
+                if product.product_type == ProductType.kit:
+                    components = db.query(ProductKit).filter(
+                        ProductKit.kit_product_id == product.id
+                    ).all()
+
+                    if not components:
+                        raise HTTPException(400, f"El kit {product.name} no tiene componentes")
+
+                    component_requirements = []
+                    for component in components:
+                        component_product = (
+                            db.query(Product)
+                            .filter_by(id=component.component_product_id, tenant_id=tenant_id)
+                            .with_for_update()
+                            .first()
+                        )
+                        if not component_product:
+                            raise HTTPException(400, "Componente de kit inválido")
+
+                        required_qty = component.quantity * item.quantity
+                        if component_product.stock < required_qty:
+                            raise HTTPException(
+                                400,
+                                f"Stock insuficiente para {component_product.name}"
+                            )
+                        component_requirements.append((component_product, required_qty))
+
+                    for component_product, required_qty in component_requirements:
+                        component_product.stock -= required_qty
+
+                elif product.product_type != ProductType.service:
+                    if product.stock < item.quantity:
+                        raise HTTPException(400, f"Stock insuficiente para {product.name}")
+                    product.stock -= item.quantity
                 conversion_factor = product.conversion_factor or Decimal("1")
                 stock_to_deduct = item.quantity * conversion_factor
 
