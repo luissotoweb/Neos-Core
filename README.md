@@ -185,13 +185,13 @@ Neos-Core/
 
 ```bash
 # Ejecutar todos los tests
-pytest tests/ -v
+pytest neos_core/tests/ -v
 
 # Ejecutar tests con coverage
-pytest tests/ -v --cov=neos_core --cov-report=html
+pytest neos_core/tests/ -v --cov=neos_core --cov-report=html
 
 # Ejecutar solo tests de ventas
-pytest tests/test_sales.py -v
+pytest neos_core/tests/test_sales.py -v
 
 # Ver reporte de coverage
 open htmlcov/index.html  # Mac/Linux
