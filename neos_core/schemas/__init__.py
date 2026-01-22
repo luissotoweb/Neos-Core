@@ -4,7 +4,7 @@ Importación centralizada de todos los schemas
 """
 
 # Tenant
-from .tenant_schema import Tenant, TenantCreate
+from .tenant_schema import Tenant, TenantCreate, TenantOnboardingCreate, TenantOnboardingResponse
 
 # User
 from .user_schema import User, UserCreate
@@ -49,6 +49,8 @@ __all__ = [
     # Tenant
     "Tenant",
     "TenantCreate",
+    "TenantOnboardingCreate",
+    "TenantOnboardingResponse",
     # User
     "User",
     "UserCreate",
