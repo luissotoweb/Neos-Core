@@ -13,7 +13,7 @@ from neos_core.database.models.role_model import Role
 from neos_core.database.models.tax_models import TaxIdType, TaxResponsibility
 
 # Modelos de inventario
-from neos_core.database.models.product_model import Product
+from neos_core.database.models.product_model import Product, ProductKit, ProductType
 
 # Modelos de clientes
 from neos_core.database.models.client_model import Client
@@ -23,8 +23,14 @@ from neos_core.database.models.currency_model import Currency
 from neos_core.database.models.point_of_sale import PointOfSale
 from neos_core.database.models.cash_count import CashCount
 
+# Modelos de onboarding
+from neos_core.database.models.tenant_onboarding_model import OnboardingPreset, TenantOnboardingConfig
+
 # Modelos de ventas
 from neos_core.database.models.sales_model import Sale, SaleDetail
+
+# Modelos contables
+from neos_core.database.models.accounting_model import AccountingMove, AccountingLine
 
 # Exportar todos
 __all__ = [
@@ -37,6 +43,8 @@ __all__ = [
     "TaxResponsibility",
     # Inventario
     "Product",
+    "ProductKit",
+    "ProductType",
     # Clientes
     "Client",
     # Configuración
@@ -46,4 +54,10 @@ __all__ = [
     # Ventas
     "Sale",
     "SaleDetail",
+    # Contabilidad
+    "AccountingMove",
+    "AccountingLine",
+    # Onboarding
+    "OnboardingPreset",
+    "TenantOnboardingConfig",
 ]
