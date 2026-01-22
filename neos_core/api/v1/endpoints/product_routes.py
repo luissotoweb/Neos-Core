@@ -133,6 +133,27 @@ def list_products(
     )
 
 
+# ===== SEARCH =====
+@router.get("/search", response_model=List[ProductListResponse])
+def search_products(
+        query: str = Query(..., min_length=1, description="Texto a buscar"),
+        skip: int = Query(0, ge=0),
+        limit: int = Query(100, ge=1, le=500),
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user)
+):
+    """
+    Busca productos por relevancia dentro del tenant.
+    """
+    return crud.search_products(
+        db=db,
+        tenant_id=current_user.tenant_id,
+        query=query,
+        skip=skip,
+        limit=limit
+    )
+
+
 # ===== READ (BY ID) =====
 @router.get("/{product_id}", response_model=ProductSchema)
 def get_product(
