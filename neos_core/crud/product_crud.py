@@ -3,6 +3,7 @@
 CRUD operations para productos (inventario)
 """
 from sqlalchemy.orm import Session
+from sqlalchemy import case, func, or_
 from typing import List, Optional
 from fastapi import HTTPException, status
 
@@ -270,3 +271,67 @@ def get_low_stock_products(db: Session, tenant_id: int) -> List[Product]:
         Product.product_type == ProductType.stock,
         Product.stock <= Product.min_stock
     ).all()
+
+
+def search_products(
+        db: Session,
+        tenant_id: int,
+        query: str,
+        skip: int = 0,
+        limit: int = 100
+) -> List[Product]:
+    """
+    Busca productos por relevancia dentro del tenant.
+    Estrategia: pg_trgm (PostgreSQL) con pesos y fallback ILIKE.
+    """
+    search_term = f"%{query.strip()}%"
+    base_query = db.query(Product).filter(Product.tenant_id == tenant_id)
+    text_filter = or_(
+        Product.name.ilike(search_term),
+        Product.sku.ilike(search_term),
+        Product.barcode.ilike(search_term),
+        Product.description.ilike(search_term)
+    )
+
+    if db.bind and db.bind.dialect.name == "postgresql":
+        similarity = func.similarity
+        rank = (
+            func.coalesce(similarity(Product.name, query), 0) * 0.5
+            + func.coalesce(similarity(Product.sku, query), 0) * 0.3
+            + func.coalesce(similarity(Product.barcode, query), 0) * 0.1
+            + func.coalesce(similarity(Product.description, query), 0) * 0.1
+        ).label("rank")
+        trigram_filter = or_(
+            similarity(Product.name, query) > 0.1,
+            similarity(Product.sku, query) > 0.1,
+            similarity(Product.barcode, query) > 0.1,
+            similarity(Product.description, query) > 0.1
+        )
+        results = (
+            base_query
+            .filter(or_(text_filter, trigram_filter))
+            .add_columns(rank)
+            .order_by(rank.desc(), Product.name.asc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
+        return [row[0] for row in results]
+
+    rank = case(
+        (Product.name.ilike(search_term), 4),
+        (Product.sku.ilike(search_term), 3),
+        (Product.barcode.ilike(search_term), 2),
+        (Product.description.ilike(search_term), 1),
+        else_=0
+    ).label("rank")
+    results = (
+        base_query
+        .filter(text_filter)
+        .add_columns(rank)
+        .order_by(rank.desc(), Product.name.asc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+    return [row[0] for row in results]
