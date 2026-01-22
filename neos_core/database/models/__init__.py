@@ -22,6 +22,9 @@ from neos_core.database.models.client_model import Client
 from neos_core.database.models.currency_model import Currency
 from neos_core.database.models.point_of_sale import PointOfSale
 
+# Modelos de onboarding
+from neos_core.database.models.tenant_onboarding_model import OnboardingPreset, TenantOnboardingConfig
+
 # Modelos de ventas
 from neos_core.database.models.sales_model import Sale, SaleDetail
 
@@ -46,4 +49,8 @@ __all__ = [
     # Ventas
     "Sale",
     "SaleDetail",
+    # Onboarding
+    "OnboardingPreset",
+    "TenantOnboardingConfig",
+
 ]
