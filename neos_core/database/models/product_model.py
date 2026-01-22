@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Numeric, Boolean, ForeignKey, Text, DateTime, JSON
+from sqlalchemy import Column, Integer, String, Numeric, Boolean, ForeignKey, Text, DateTime
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from neos_core.database.config import Base
@@ -23,8 +24,7 @@ class Product(Base):
 
     tax_rate = Column(Numeric(5, 2), nullable=False, default=0)
 
-    # IMPORTANTE: Solo JSON, sin JSONB
-    attributes = Column(JSON, nullable=True)
+    attributes = Column(JSONB, nullable=True)
 
     is_active = Column(Boolean, default=True, nullable=False)
     is_service = Column(Boolean, default=False, nullable=False)
