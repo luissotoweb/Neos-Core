@@ -12,6 +12,7 @@ from neos_core.api.v1.endpoints import (
     config_routes,
     client_routes,
     sales_routes,  # ⭐ NUEVO
+    ai_routes
     cash_count_routes
     accounting_routes
 )
@@ -63,6 +64,10 @@ api_router.include_router(
     tags=["Sales"]
 )
 
+# 🤖 AI
+api_router.include_router(
+    ai_routes.router,
+    tags=["AI"]
 # Cash Counts
 api_router.include_router(
     cash_count_routes.router,

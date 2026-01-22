@@ -29,6 +29,8 @@ from neos_core.database.models.tenant_onboarding_model import OnboardingPreset, 
 # Modelos de ventas
 from neos_core.database.models.sales_model import Sale, SaleDetail
 
+# Modelos de IA
+from neos_core.database.models.ai_interaction_model import AIInteraction
 # Modelos contables
 from neos_core.database.models.accounting_model import AccountingMove, AccountingLine
 
@@ -54,6 +56,8 @@ __all__ = [
     # Ventas
     "Sale",
     "SaleDetail",
+    # IA
+    "AIInteraction",
     # Contabilidad
     "AccountingMove",
     "AccountingLine",
