@@ -75,7 +75,7 @@ def create_sale(db: Session, tenant_id: int, user_id: int, sale_data: SaleCreate
                 )
 
                 if not product:
-                    raise HTTPException(404, f"Producto {item.product_id} no existe")
+                    raise HTTPException(404, "Producto no pertenece al tenant")
 
                 if product.product_type == ProductType.kit:
                     components = db.query(ProductKit).filter(
