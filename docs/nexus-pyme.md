@@ -5,6 +5,9 @@ Sistema de gestión integral (ERP/POS) agnóstico, modular y potenciado por IA, 
 
 ## 1. Stack Tecnológico y Arquitectura
 
+### Alcance Backend-only (Este repositorio)
+Este repositorio cubre **exclusivamente el backend** (API, modelos y lógica de negocio). La interfaz web/PWA y cualquier frontend se planifican y mantienen en proyectos independientes para evitar confusiones de alcance.
+
 ### Backend (El Cerebro)
 - Lenguaje: Python 3.10+
 - Framework: FastAPI (por velocidad, tipado estricto y soporte asíncrono)
@@ -22,6 +25,12 @@ Sistema de gestión integral (ERP/POS) agnóstico, modular y potenciado por IA, 
 - Estrategia clave: uso de columnas JSONB para atributos flexibles de productos (permite que un producto tenga "Talla" y otro "Voltaje" en la misma tabla)
 
 ## 2. Módulos del Sistema (Desglose Funcional)
+
+### Estado actual (implementado)
+- ✅ **Ventas**: flujo completo de venta con descuento de stock e impuestos.
+- ✅ **Cash Count / Cierre de Caja**: apertura/cierre, conciliación y diferencias.
+- ✅ **Analytics**: métricas y KPIs de ventas/inventario con filtros.
+- ✅ **IA**: endpoints/servicios listos para integraciones con proveedores.
 
 ### MÓDULO 0: NÚCLEO Y MULTI-TENANCY
 La base para que el sistema sea seguro y escalable.
@@ -70,6 +79,15 @@ Toma de decisiones basada en datos.
 - [REQ-4.1] Chat con tus datos (NLP to SQL): interfaz de chat donde el dueño pregunta "¿Qué vendí más el viernes pasado?" y el sistema responde con el dato exacto.
 - [REQ-4.2] Predicción de demanda simple: análisis del histórico de ventas para sugerir la "Orden de Compra Ideal" y evitar quiebres de stock.
 - [REQ-4.3] Dashboard de anomalías: alertas automáticas: "El producto X tiene margen negativo hoy" o "El inventario de Y no cuadra".
+
+## Documento Técnico (Checklist actualizado)
+- ✅ Arquitectura multi-tenant, RBAC y autenticación JWT operativos.
+- ✅ CRUD base de productos, clientes, usuarios y configuración del tenant.
+- ✅ Módulo de ventas funcional con impuestos, stock y permisos.
+- ✅ Cash count con apertura/cierre y conciliación de caja.
+- ✅ Analytics con KPIs y filtros por fechas/usuarios.
+- ✅ Servicios de IA listos para integraciones externas.
+- ✅ Documentación de endpoints vía Swagger/ReDoc.
 
 ## 3. Hoja de Ruta de Desarrollo (Roadmap MVP)
 

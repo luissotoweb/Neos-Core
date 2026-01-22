@@ -96,6 +96,12 @@ Consulta la especificación funcional y el roadmap en [docs/nexus-pyme.md](docs/
 
 ---
 
+## 🧭 Alcance del Repositorio (Backend-only)
+
+Este repositorio contiene **solo el backend** (API, modelos y lógica de negocio). La interfaz web/PWA y cualquier frontend se gestionan en proyectos separados para evitar ambigüedad sobre responsabilidades y entregables.
+
+---
+
 ## 🗂️ Estructura Modular del Proyecto
 
 ```
@@ -178,6 +184,20 @@ Neos-Core/
 - ✅ Cancelación de ventas con reversión de stock
 - ✅ Filtros avanzados (cliente, fecha, método de pago)
 - ✅ Control de permisos por rol
+
+#### 💵 **Cash Count / Cierre de Caja**
+- ✅ Registro de apertura/cierre por usuario y turno
+- ✅ Conciliación de efectivo contado vs. sistema
+- ✅ Registro de diferencias (sobrante/faltante) con observaciones
+
+#### 📊 **Analytics**
+- ✅ Paneles y métricas clave de ventas e inventario
+- ✅ Filtros por rango de fechas, usuario y punto de venta
+- ✅ KPIs para seguimiento de rendimiento
+
+#### 🤖 **IA**
+- ✅ Endpoints y servicios de soporte para automatizaciones IA
+- ✅ Preparado para integración con proveedores (OpenAI/Anthropic/Ollama)
 
 ---
 
