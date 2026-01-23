@@ -120,3 +120,9 @@ class ProductListResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class ProductSemanticSearchResult(BaseModel):
+    """Resultado de búsqueda semántica con score de similitud."""
+    product: ProductListResponse
+    score: float

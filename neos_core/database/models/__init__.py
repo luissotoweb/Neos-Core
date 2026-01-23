@@ -14,6 +14,7 @@ from neos_core.database.models.tax_models import TaxIdType, TaxResponsibility
 
 # Modelos de inventario
 from neos_core.database.models.product_model import Product, ProductKit, ProductType
+from neos_core.database.models.product_embedding_model import ProductEmbedding
 
 # Modelos de clientes
 from neos_core.database.models.client_model import Client
@@ -49,6 +50,7 @@ __all__ = [
     "Product",
     "ProductKit",
     "ProductType",
+    "ProductEmbedding",
     # Clientes
     "Client",
     # Configuración
