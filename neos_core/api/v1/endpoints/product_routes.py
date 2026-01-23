@@ -15,9 +15,11 @@ from neos_core.schemas.product_schema import (
     Product as ProductSchema,
     ProductCreate,
     ProductUpdate,
-    ProductListResponse
+    ProductListResponse,
+    ProductSemanticSearchResult,
 )
 from neos_core.crud import product_crud as crud
+from neos_core.services.product_semantic_search_service import semantic_search_products
 
 router = APIRouter()
 
@@ -152,6 +154,51 @@ def search_products(
         skip=skip,
         limit=limit
     )
+
+
+# ===== SEMANTIC SEARCH =====
+@router.get("/search/semantic", response_model=List[ProductSemanticSearchResult])
+def semantic_search(
+        query: str = Query(..., min_length=1, description="Texto a comparar semánticamente"),
+        skip: int = Query(0, ge=0),
+        limit: int = Query(20, ge=1, le=200),
+        tenant_id: Optional[int] = Query(None, gt=0, description="Tenant objetivo (solo superadmin)"),
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user)
+):
+    """
+    Búsqueda semántica de productos usando embeddings.
+    """
+    if current_user.role.name == "superadmin":
+        if tenant_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="tenant_id es requerido para superadmin",
+            )
+        target_tenant_id = tenant_id
+    else:
+        if tenant_id is not None and tenant_id != current_user.tenant_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No puedes buscar productos en otro tenant",
+            )
+        target_tenant_id = current_user.tenant_id
+
+    results = semantic_search_products(
+        db=db,
+        tenant_id=target_tenant_id,
+        query=query,
+        skip=skip,
+        limit=limit,
+    )
+
+    return [
+        ProductSemanticSearchResult(
+            product=ProductListResponse.model_validate(product),
+            score=score,
+        )
+        for product, score in results
+    ]
 
 
 # ===== READ (BY ID) =====
