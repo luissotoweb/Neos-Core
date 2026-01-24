@@ -60,7 +60,9 @@ from .analytics_schema import (
 # Cash Count
 from .cash_count_schema import CashCountCreate, CashCountResponse
 # Expense
-from .expense_schema import ExpenseResponse, ExpenseSuggestionRequest, ExpenseSuggestionResponse
+from .expense_schema import ExpenseCreate, ExpenseResponse, ExpenseSuggestionRequest, ExpenseSuggestionResponse
+# Purchase
+from .purchase_schema import PurchaseCreate, PurchaseResponse
 
 __all__ = [
     # Tenant
@@ -113,7 +115,11 @@ __all__ = [
     "CashCountCreate",
     "CashCountResponse",
     # Expense
+    "ExpenseCreate",
     "ExpenseResponse",
     "ExpenseSuggestionRequest",
     "ExpenseSuggestionResponse",
+    # Purchase
+    "PurchaseCreate",
+    "PurchaseResponse",
 ]

@@ -34,6 +34,8 @@ from neos_core.database.models.sales_model import Sale, SaleDetail
 from neos_core.database.models.ai_interaction_model import AIInteraction
 # Modelos de gastos
 from neos_core.database.models.expense_model import Expense
+# Modelos de compras
+from neos_core.database.models.purchase_model import Purchase
 # Modelos contables
 from neos_core.database.models.accounting_model import AccountingMove, AccountingLine
 
@@ -64,6 +66,8 @@ __all__ = [
     "AIInteraction",
     # Gastos
     "Expense",
+    # Compras
+    "Purchase",
     # Contabilidad
     "AccountingMove",
     "AccountingLine",
