@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
 
@@ -21,3 +21,13 @@ class NLPSQLResponse(BaseModel):
     sql: str
     notes: Optional[str] = None
     raw_response: str
+
+
+class ExecuteSQLRequest(BaseModel):
+    sql: str = Field(..., min_length=1)
+
+
+class ExecuteSQLResponse(BaseModel):
+    sql: str
+    row_count: int
+    rows: List[Dict[str, Any]]
