@@ -52,6 +52,7 @@ class ProductBase(BaseModel):
     )
 
     # Impuestos
+    tax_rate_id: Optional[int] = Field(None, gt=0, description="Referencia a tasa de impuesto")
     tax_rate: Decimal = Field(default=Decimal("0"), ge=0, le=100, description="Tasa de impuesto (%)")
 
     # Tipo de producto
@@ -82,6 +83,7 @@ class ProductUpdate(BaseModel):
     cost: Optional[Decimal] = Field(None, ge=0)
     stock: Optional[Decimal] = Field(None, ge=0)
     min_stock: Optional[Decimal] = Field(None, ge=0)
+    tax_rate_id: Optional[int] = Field(None, gt=0)
     tax_rate: Optional[Decimal] = Field(None, ge=0, le=100)
     product_type: Optional[ProductType] = None
     is_active: Optional[bool] = None

@@ -32,7 +32,10 @@ from .config_schema import (
     CurrencyCreate,
     PointOfSale, 
     PointOfSaleCreate,
-    PointOfSaleUpdate
+    PointOfSaleUpdate,
+    TaxRate,
+    TaxRateCreate,
+    TaxRateUpdate
 )
 
 # Client
@@ -93,6 +96,9 @@ __all__ = [
     "PointOfSale",
     "PointOfSaleCreate",
     "PointOfSaleUpdate",
+    "TaxRate",
+    "TaxRateCreate",
+    "TaxRateUpdate",
     # Client
     "Client",
     "ClientCreate",

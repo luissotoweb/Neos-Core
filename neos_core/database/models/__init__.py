@@ -11,6 +11,7 @@ from neos_core.database.models.role_model import Role
 
 # Modelos de configuración fiscal (solo fiscales, sin Currency ni POS)
 from neos_core.database.models.tax_models import TaxIdType, TaxResponsibility
+from neos_core.database.models.tax_rate_model import TaxRate
 
 # Modelos de inventario
 from neos_core.database.models.product_model import Product, ProductKit, ProductType
@@ -48,6 +49,7 @@ __all__ = [
     # Fiscal
     "TaxIdType",
     "TaxResponsibility",
+    "TaxRate",
     # Inventario
     "Product",
     "ProductKit",
