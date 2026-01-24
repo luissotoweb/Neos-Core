@@ -1,7 +1,7 @@
 """
 Endpoints mínimos de contabilidad (borradores y cierres de período)
 """
-from datetime import datetime
+from datetime import date, datetime
 from typing import List
 
 from fastapi import APIRouter, Depends
@@ -14,12 +14,15 @@ from neos_core.schemas.accounting_schema import (
     AccountingClosePeriodRequest,
     AccountingClosePeriodResponse,
     AccountingDraftFilters,
+    BalanceSheetPeriod,
     AccountingMoveCreate,
     AccountingMovePatch,
     AccountingMoveResponse,
-    AccountingMoveUpdate
+    AccountingMoveUpdate,
+    IncomeStatementPeriod
 )
 from neos_core.security.security_deps import get_current_user
+from neos_core.services import accounting_reports
 
 router = APIRouter(prefix="/accounting", tags=["Accounting"])
 
@@ -112,4 +115,40 @@ def close_period(
         period_month=payload.period_month,
         closed_moves=closed_moves,
         closed_at=closed_at
+    )
+
+
+@router.get(
+    "/reports/income-statement",
+    response_model=List[IncomeStatementPeriod]
+)
+def get_income_statement(
+    start_date: date = None,
+    end_date: date = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    return accounting_reports.get_income_statement(
+        db=db,
+        tenant_id=current_user.tenant_id,
+        start_date=start_date,
+        end_date=end_date
+    )
+
+
+@router.get(
+    "/reports/balance-sheet",
+    response_model=List[BalanceSheetPeriod]
+)
+def get_balance_sheet(
+    start_date: date = None,
+    end_date: date = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    return accounting_reports.get_balance_sheet(
+        db=db,
+        tenant_id=current_user.tenant_id,
+        start_date=start_date,
+        end_date=end_date
     )

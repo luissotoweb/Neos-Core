@@ -87,3 +87,30 @@ class AccountingClosePeriodResponse(BaseModel):
     period_month: int
     closed_moves: int
     closed_at: datetime
+
+
+class AccountingReportLine(BaseModel):
+    account_code: str
+    debit: Decimal
+    credit: Decimal
+    balance: Decimal
+    category: str
+
+
+class IncomeStatementPeriod(BaseModel):
+    period_year: int
+    period_month: int
+    revenues: Decimal
+    expenses: Decimal
+    net_income: Decimal
+    lines: List[AccountingReportLine]
+
+
+class BalanceSheetPeriod(BaseModel):
+    period_year: int
+    period_month: int
+    assets: Decimal
+    liabilities: Decimal
+    equity: Decimal
+    total_liabilities_equity: Decimal
+    lines: List[AccountingReportLine]
