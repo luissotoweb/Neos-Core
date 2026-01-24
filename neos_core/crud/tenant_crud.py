@@ -75,8 +75,102 @@ def create_tenant_onboarding_config(
     db.add(onboarding)
     db.commit()
     db.refresh(onboarding)
+    ensure_tenant_categories(db, tenant_id=tenant_id, categories=categories)
+    ensure_tenant_active_modules(db, tenant_id=tenant_id, active_modules=active_modules)
     return onboarding
 
 
 def get_tenants(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Tenant).offset(skip).limit(limit).all()
+
+
+def get_category_by_name(db: Session, tenant_id: int, name: str):
+    return db.query(models.TenantCategory).filter(
+        models.TenantCategory.tenant_id == tenant_id,
+        models.TenantCategory.name == name,
+    ).first()
+
+
+def create_category(db: Session, tenant_id: int, name: str):
+    existing = get_category_by_name(db, tenant_id=tenant_id, name=name)
+    if existing:
+        return existing
+    category = models.TenantCategory(
+        tenant_id=tenant_id,
+        name=name,
+        is_active=True,
+    )
+    db.add(category)
+    db.commit()
+    db.refresh(category)
+    return category
+
+
+def ensure_tenant_categories(db: Session, tenant_id: int, categories: list[str]):
+    cleaned_categories = [category.strip() for category in categories if category and category.strip()]
+    if not cleaned_categories:
+        return []
+
+    existing_categories = db.query(models.TenantCategory).filter(
+        models.TenantCategory.tenant_id == tenant_id,
+        models.TenantCategory.name.in_(cleaned_categories),
+    ).all()
+    existing_names = {category.name for category in existing_categories}
+
+    new_categories = [
+        models.TenantCategory(tenant_id=tenant_id, name=category, is_active=True)
+        for category in cleaned_categories
+        if category not in existing_names
+    ]
+    if new_categories:
+        db.add_all(new_categories)
+        db.commit()
+        for category in new_categories:
+            db.refresh(category)
+    return existing_categories + new_categories
+
+
+def get_active_module_by_key(db: Session, tenant_id: int, module_key: str):
+    return db.query(models.TenantActiveModule).filter(
+        models.TenantActiveModule.tenant_id == tenant_id,
+        models.TenantActiveModule.module_key == module_key,
+    ).first()
+
+
+def create_active_module(db: Session, tenant_id: int, module_key: str):
+    existing = get_active_module_by_key(db, tenant_id=tenant_id, module_key=module_key)
+    if existing:
+        return existing
+    module = models.TenantActiveModule(
+        tenant_id=tenant_id,
+        module_key=module_key,
+        is_active=True,
+    )
+    db.add(module)
+    db.commit()
+    db.refresh(module)
+    return module
+
+
+def ensure_tenant_active_modules(db: Session, tenant_id: int, active_modules: list[str]):
+    cleaned_modules = [module.strip().lower() for module in active_modules if module and module.strip()]
+    if not cleaned_modules:
+        return []
+
+    existing_modules = db.query(models.TenantActiveModule).filter(
+        models.TenantActiveModule.tenant_id == tenant_id,
+        models.TenantActiveModule.module_key.in_(cleaned_modules),
+    ).all()
+    existing_keys = {module.module_key for module in existing_modules}
+
+    new_modules = [
+        models.TenantActiveModule(tenant_id=tenant_id, module_key=module_key, is_active=True)
+        for module_key in cleaned_modules
+        if module_key not in existing_keys
+    ]
+    if new_modules:
+        db.add_all(new_modules)
+        db.commit()
+        for module in new_modules:
+            db.refresh(module)
+    return existing_modules + new_modules
