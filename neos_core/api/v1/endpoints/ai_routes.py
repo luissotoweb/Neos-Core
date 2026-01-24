@@ -5,13 +5,20 @@ import re
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from neos_core.database.config import get_db
 from neos_core.database import models
 from neos_core.database.models import User
 from neos_core.security.security_deps import get_current_user
-from neos_core.schemas.ai_schema import CatalogProductResponse, NLPSQLRequest, NLPSQLResponse
+from neos_core.schemas.ai_schema import (
+    CatalogProductResponse,
+    ExecuteSQLRequest,
+    ExecuteSQLResponse,
+    NLPSQLRequest,
+    NLPSQLResponse,
+)
 from neos_core.schemas.expense_schema import ExpenseSuggestionRequest, ExpenseSuggestionResponse
 from neos_core.services.ai_client import AIClient
 from neos_core.crud import create_ai_interaction
@@ -32,6 +39,33 @@ def _extract_json_payload(text: str) -> Dict[str, Any]:
 def _validate_tenant_filter(sql: str, tenant_id: int) -> bool:
     pattern = rf"(\btenant_id\b|\b\w+\.tenant_id\b)\s*=\s*{tenant_id}\b"
     return re.search(pattern, sql, re.IGNORECASE) is not None
+
+
+def _validate_select_only(sql: str) -> None:
+    sql_clean = sql.strip()
+    if not sql_clean.lower().startswith("select"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Solo se permiten consultas SELECT",
+        )
+
+    sanitized = sql_clean.rstrip().rstrip(";")
+    if ";" in sanitized:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Solo se permite una sentencia SQL",
+        )
+
+
+def _apply_limit(sql: str, limit: int = 100) -> str:
+    pattern = re.compile(r"\blimit\s+(\d+)\b", re.IGNORECASE)
+    match = pattern.search(sql)
+    if match:
+        current_limit = int(match.group(1))
+        if current_limit > limit:
+            return pattern.sub(f"LIMIT {limit}", sql)
+        return sql
+    return f"{sql.rstrip().rstrip(';')} LIMIT {limit}"
 
 
 @router.post("/catalog-product", response_model=CatalogProductResponse)
@@ -193,6 +227,62 @@ def nlp_to_sql(
         notes=notes,
         raw_response=response_text,
     )
+
+
+@router.post("/execute-sql", response_model=ExecuteSQLResponse)
+def execute_sql(
+    payload: ExecuteSQLRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Ejecuta una consulta SQL generada (solo SELECT) con aislamiento por tenant.
+    """
+    sql_clean = payload.sql.strip()
+    _validate_select_only(sql_clean)
+
+    has_tenant_filter = _validate_tenant_filter(sql_clean, current_user.tenant_id)
+    if not has_tenant_filter:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La consulta debe filtrar por tenant_id",
+        )
+
+    sql_limited = _apply_limit(sql_clean, limit=100)
+
+    try:
+        result = db.execute(text(sql_limited))
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error al ejecutar la consulta: {exc}",
+        ) from exc
+
+    rows = [dict(row) for row in result.mappings().all()]
+    row_count = len(rows)
+
+    create_ai_interaction(
+        db,
+        tenant_id=current_user.tenant_id,
+        user_id=current_user.id,
+        provider="system",
+        model=None,
+        operation="execute_sql",
+        prompt=sql_clean,
+        response=json.dumps(rows, ensure_ascii=False),
+        request_metadata={
+            "sql": sql_clean,
+            "limit_applied": 100,
+            "tenant_id": current_user.tenant_id,
+        },
+        response_metadata={
+            "row_count": row_count,
+            "limited_sql": sql_limited,
+            "has_tenant_filter": has_tenant_filter,
+        },
+    )
+
+    return ExecuteSQLResponse(sql=sql_limited, row_count=row_count, rows=rows)
 
 
 @router.post("/expense-suggest", response_model=ExpenseSuggestionResponse)
