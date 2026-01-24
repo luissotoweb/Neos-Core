@@ -10,6 +10,8 @@ from neos_core.database.models import User
 from neos_core.security.security_deps import get_current_user
 from neos_core.schemas.sales_schema import (
     SaleCreate,
+    SaleDraftCreate,
+    SaleDraftUpdate,
     SaleResponse,
     SaleListResponse,
     SaleFilters
@@ -37,6 +39,20 @@ def create_sale(
     current_user: User = Depends(check_sale_permission)
 ):
     return sales_crud.create_sale(
+        db=db,
+        tenant_id=current_user.tenant_id,
+        user_id=current_user.id,
+        sale_data=sale_data
+    )
+
+
+@router.post("/draft", response_model=SaleResponse, status_code=status.HTTP_201_CREATED)
+def create_sale_draft(
+    sale_data: SaleDraftCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(check_sale_permission)
+):
+    return sales_crud.create_sale_draft(
         db=db,
         tenant_id=current_user.tenant_id,
         user_id=current_user.id,
@@ -76,6 +92,36 @@ def list_sales(
         limit=limit
     )
     return sales_crud.get_sales(db, current_user.tenant_id, filters)
+
+
+@router.put("/{sale_id}", response_model=SaleResponse)
+def update_sale_draft(
+    sale_id: int,
+    sale_data: SaleDraftUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(check_sale_permission)
+):
+    return sales_crud.update_sale_draft(
+        db=db,
+        sale_id=sale_id,
+        tenant_id=current_user.tenant_id,
+        user_id=current_user.id,
+        sale_data=sale_data
+    )
+
+
+@router.post("/{sale_id}/confirm", response_model=SaleResponse)
+def confirm_sale(
+    sale_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(check_sale_permission)
+):
+    return sales_crud.confirm_sale(
+        db=db,
+        sale_id=sale_id,
+        tenant_id=current_user.tenant_id,
+        user_id=current_user.id
+    )
 
 
 @router.post("/{sale_id}/cancel", response_model=SaleResponse)

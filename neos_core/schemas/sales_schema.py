@@ -2,7 +2,7 @@
 Schemas para el módulo de ventas
 Validación con Pydantic para entrada/salida de datos
 """
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, ValidationInfo, field_validator
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional, List, Literal
@@ -41,7 +41,8 @@ class SaleItemResponse(BaseModel):
 
 SaleStatus = Literal["completed", "cancelled", "on_hold"]
 
-class SaleCreate(BaseModel):
+
+class SaleBase(BaseModel):
     client_id: Optional[int] = Field(None, description="Cliente opcional")
     point_of_sale_id: int = Field(..., gt=0)
     currency_id: int = Field(..., gt=0)
@@ -51,14 +52,46 @@ class SaleCreate(BaseModel):
     cae: Optional[str] = Field(None, min_length=1, max_length=50)
     cae_expiration: Optional[datetime] = None
     invoice_number: Optional[str] = Field(None, min_length=1, max_length=50)
+
+class SaleCreate(SaleBase):
+    status: Literal["completed"] = "completed"
     items: List[SaleItemCreate]
 
     @field_validator("items")
     @classmethod
-    def validate_items_not_empty(cls, v):
+    def validate_items_not_empty(cls, v: List[SaleItemCreate]):
         if not v:
             raise ValueError("La venta debe tener al menos un item")
         return v
+
+
+class SaleDraftCreate(SaleBase):
+    status: Literal["on_hold"] = "on_hold"
+    items: Optional[List[SaleItemCreate]] = None
+
+    @field_validator("items")
+    @classmethod
+    def validate_items_for_draft(
+        cls,
+        v: Optional[List[SaleItemCreate]],
+        info: ValidationInfo
+    ):
+        if info.data.get("status") == "on_hold":
+            return v or []
+        return v
+
+
+class SaleDraftUpdate(BaseModel):
+    client_id: Optional[int] = None
+    point_of_sale_id: Optional[int] = Field(None, gt=0)
+    currency_id: Optional[int] = Field(None, gt=0)
+    payment_method: Optional[str] = Field(None, min_length=2, max_length=50)
+    exchange_rate: Optional[Decimal] = Field(None, gt=0)
+    invoice_type: Optional[str] = Field(None, min_length=1, max_length=50)
+    cae: Optional[str] = Field(None, min_length=1, max_length=50)
+    cae_expiration: Optional[datetime] = None
+    invoice_number: Optional[str] = Field(None, min_length=1, max_length=50)
+    items: Optional[List[SaleItemCreate]] = None
 
 
 class SaleResponse(BaseModel):
