@@ -25,7 +25,7 @@ class Sale(Base):
     total = Column(Numeric(10, 2), nullable=False, default=0)
 
     payment_method = Column(String(50), nullable=False)
-    status = Column(String(20), nullable=False, default="completed")
+    status = Column(String(20), nullable=False, default="on_hold")
 
     created_at = Column(DateTime, default=datetime.utcnow)
 

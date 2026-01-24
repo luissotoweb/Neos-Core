@@ -6,43 +6,14 @@ from fastapi import HTTPException, status
 from neos_core.database.models import (
     Sale, SaleDetail, Product, ProductKit, ProductType, Tenant, Client, PointOfSale, Currency
 )
-from neos_core.schemas.sales_schema import SaleCreate, SaleFilters
+from neos_core.schemas.sales_schema import SaleCreate, SaleDraftCreate, SaleDraftUpdate, SaleFilters
 from neos_core.services import accounting_service
 
 
 def create_sale(db: Session, tenant_id: int, user_id: int, sale_data: SaleCreate) -> Sale:
     try:
         with db.begin():
-
-            tenant = db.query(Tenant).filter_by(id=tenant_id, is_active=True).first()
-            if not tenant:
-                raise HTTPException(403, "Tenant inválido o inactivo")
-            if tenant.electronic_invoicing_enabled and (
-                not sale_data.cae or not sale_data.invoice_type
-            ):
-                raise HTTPException(
-                    status.HTTP_400_BAD_REQUEST,
-                    "CAE y tipo de factura son obligatorios para facturación electrónica"
-                )
-
-            pos = db.query(PointOfSale).filter_by(
-                id=sale_data.point_of_sale_id,
-                tenant_id=tenant_id
-            ).first()
-            if not pos:
-                raise HTTPException(400, "Punto de venta inválido")
-
-            if sale_data.client_id:
-                client = db.query(Client).filter_by(
-                    id=sale_data.client_id,
-                    tenant_id=tenant_id
-                ).first()
-                if not client:
-                    raise HTTPException(400, "Cliente inválido")
-
-            currency = db.query(Currency).filter_by(id=sale_data.currency_id).first()
-            if not currency:
-                raise HTTPException(400, "Moneda inválida")
+            _validate_sale_context(db, tenant_id, sale_data)
 
             sale = Sale(
                 tenant_id=tenant_id,
@@ -61,88 +32,57 @@ def create_sale(db: Session, tenant_id: int, user_id: int, sale_data: SaleCreate
             db.add(sale)
             db.flush()
 
-            subtotal = Decimal("0")
-            tax_total = Decimal("0")
-            money_quantizer = Decimal("0.01")
-
-            for item in sale_data.items:
-
-                product = (
-                    db.query(Product)
-                    .filter_by(id=item.product_id, tenant_id=tenant_id)
-                    .with_for_update()
-                    .first()
-                )
-
-                if not product:
-                    raise HTTPException(404, "Producto no pertenece al tenant")
-
-                if product.product_type == ProductType.kit:
-                    components = db.query(ProductKit).filter(
-                        ProductKit.kit_product_id == product.id
-                    ).all()
-
-                    if not components:
-                        raise HTTPException(400, f"El kit {product.name} no tiene componentes")
-
-                    component_requirements = []
-                    for component in components:
-                        component_product = (
-                            db.query(Product)
-                            .filter_by(id=component.component_product_id, tenant_id=tenant_id)
-                            .with_for_update()
-                            .first()
-                        )
-                        if not component_product:
-                            raise HTTPException(400, "Componente de kit inválido")
-
-                        required_qty = component.quantity * item.quantity
-                        if component_product.stock < required_qty:
-                            raise HTTPException(
-                                400,
-                                f"Stock insuficiente para {component_product.name}"
-                            )
-                        component_requirements.append((component_product, required_qty))
-
-                    for component_product, required_qty in component_requirements:
-                        component_product.stock -= required_qty
-
-                elif product.product_type == ProductType.stock:
-                    conversion_factor = product.conversion_factor or Decimal("1")
-                    stock_to_deduct = item.quantity * conversion_factor
-                    if product.stock < stock_to_deduct:
-                        raise HTTPException(400, f"Stock insuficiente para {product.name}")
-                    product.stock -= stock_to_deduct
-
-                unit_price = product.price
-                line_subtotal = (unit_price * item.quantity).quantize(money_quantizer)
-                tax_rate = product.tax_rate or Decimal("0")
-                tax_amount = (
-                    (line_subtotal * tax_rate) / Decimal("100")
-                ).quantize(money_quantizer)
-                line_total = (line_subtotal + tax_amount).quantize(money_quantizer)
-
-                detail = SaleDetail(
-                    sale_id=sale.id,
-                    product_id=product.id,
-                    quantity=item.quantity,
-                    unit_price=unit_price,
-                    tax_rate=tax_rate,
-                    subtotal=line_subtotal,
-                    tax_amount=tax_amount,
-                    total=line_total
-                )
-
-                db.add(detail)
-
-                subtotal += line_subtotal
-                tax_total += tax_amount
-
-            sale.subtotal = subtotal.quantize(money_quantizer)
-            sale.tax_amount = tax_total.quantize(money_quantizer)
-            sale.total = (sale.subtotal + sale.tax_amount).quantize(money_quantizer)
+            _apply_sale_items_with_stock(
+                db=db,
+                tenant_id=tenant_id,
+                sale=sale,
+                items=sale_data.items
+            )
 
             accounting_service.create_sale_move(db=db, sale=sale)
+
+            db.flush()
+            db.refresh(sale)
+            return sale
+
+    except SQLAlchemyError:
+        db.rollback()
+        raise
+
+
+def create_sale_draft(
+    db: Session,
+    tenant_id: int,
+    user_id: int,
+    sale_data: SaleDraftCreate
+) -> Sale:
+    try:
+        with db.begin():
+            _validate_sale_context(db, tenant_id, sale_data)
+
+            sale = Sale(
+                tenant_id=tenant_id,
+                user_id=user_id,
+                client_id=sale_data.client_id,
+                point_of_sale_id=sale_data.point_of_sale_id,
+                currency_id=sale_data.currency_id,
+                payment_method=sale_data.payment_method,
+                exchange_rate=sale_data.exchange_rate,
+                invoice_type=sale_data.invoice_type,
+                cae=sale_data.cae,
+                cae_expiration=sale_data.cae_expiration,
+                invoice_number=sale_data.invoice_number,
+                status="on_hold"
+            )
+            db.add(sale)
+            db.flush()
+
+            _apply_sale_items_without_stock(
+                db=db,
+                tenant_id=tenant_id,
+                sale=sale,
+                items=sale_data.items or []
+            )
 
             db.flush()
             db.refresh(sale)
@@ -275,3 +215,345 @@ def resume_sale(db: Session, sale_id: int, tenant_id: int, user_id: int) -> Sale
         db.flush()
         db.refresh(sale)
         return sale
+
+
+def update_sale_draft(
+    db: Session,
+    sale_id: int,
+    tenant_id: int,
+    user_id: int,
+    sale_data: SaleDraftUpdate
+) -> Sale:
+    with db.begin():
+        sale = (
+            db.query(Sale)
+            .options(joinedload(Sale.items))
+            .filter(Sale.id == sale_id, Sale.tenant_id == tenant_id)
+            .with_for_update()
+            .first()
+        )
+
+        if not sale:
+            raise HTTPException(404, "Venta no encontrada")
+
+        if sale.status != "on_hold":
+            raise HTTPException(400, "Solo se pueden actualizar ventas en espera")
+
+        tenant = db.query(Tenant).filter_by(id=tenant_id, is_active=True).first()
+        if not tenant:
+            raise HTTPException(403, "Tenant inválido o inactivo")
+
+        if sale_data.point_of_sale_id is not None:
+            pos = db.query(PointOfSale).filter_by(
+                id=sale_data.point_of_sale_id,
+                tenant_id=tenant_id
+            ).first()
+            if not pos:
+                raise HTTPException(400, "Punto de venta inválido")
+            sale.point_of_sale_id = sale_data.point_of_sale_id
+
+        if sale_data.client_id is not None:
+            if sale_data.client_id:
+                client = db.query(Client).filter_by(
+                    id=sale_data.client_id,
+                    tenant_id=tenant_id
+                ).first()
+                if not client:
+                    raise HTTPException(400, "Cliente inválido")
+            sale.client_id = sale_data.client_id
+
+        if sale_data.currency_id is not None:
+            currency = db.query(Currency).filter_by(id=sale_data.currency_id).first()
+            if not currency:
+                raise HTTPException(400, "Moneda inválida")
+            sale.currency_id = sale_data.currency_id
+
+        sale.payment_method = sale_data.payment_method or sale.payment_method
+        sale.exchange_rate = sale_data.exchange_rate if sale_data.exchange_rate is not None else sale.exchange_rate
+        sale.invoice_type = sale_data.invoice_type if sale_data.invoice_type is not None else sale.invoice_type
+        sale.cae = sale_data.cae if sale_data.cae is not None else sale.cae
+        sale.cae_expiration = (
+            sale_data.cae_expiration
+            if sale_data.cae_expiration is not None
+            else sale.cae_expiration
+        )
+        sale.invoice_number = (
+            sale_data.invoice_number
+            if sale_data.invoice_number is not None
+            else sale.invoice_number
+        )
+
+        if tenant.electronic_invoicing_enabled and (not sale.cae or not sale.invoice_type):
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "CAE y tipo de factura son obligatorios para facturación electrónica"
+            )
+
+        if sale_data.items is not None:
+            for item in list(sale.items):
+                db.delete(item)
+            db.flush()
+
+            _apply_sale_items_without_stock(
+                db=db,
+                tenant_id=tenant_id,
+                sale=sale,
+                items=sale_data.items
+            )
+
+        db.flush()
+        db.refresh(sale)
+        return sale
+
+
+def confirm_sale(db: Session, sale_id: int, tenant_id: int, user_id: int) -> Sale:
+    with db.begin():
+        sale = (
+            db.query(Sale)
+            .options(joinedload(Sale.items))
+            .filter(Sale.id == sale_id, Sale.tenant_id == tenant_id)
+            .with_for_update()
+            .first()
+        )
+
+        if not sale:
+            raise HTTPException(404, "Venta no encontrada")
+
+        if sale.status != "on_hold":
+            raise HTTPException(400, "Solo se pueden confirmar ventas en espera")
+
+        if not sale.items:
+            raise HTTPException(400, "La venta en espera no tiene items para confirmar")
+
+        money_quantizer = Decimal("0.01")
+        subtotal = Decimal("0")
+        tax_total = Decimal("0")
+
+        for item in sale.items:
+            product = (
+                db.query(Product)
+                .filter_by(id=item.product_id, tenant_id=tenant_id)
+                .with_for_update()
+                .first()
+            )
+
+            if not product:
+                raise HTTPException(404, "Producto no pertenece al tenant")
+
+            if product.product_type == ProductType.kit:
+                components = db.query(ProductKit).filter(
+                    ProductKit.kit_product_id == product.id
+                ).all()
+
+                if not components:
+                    raise HTTPException(400, f"El kit {product.name} no tiene componentes")
+
+                component_requirements = []
+                for component in components:
+                    component_product = (
+                        db.query(Product)
+                        .filter_by(id=component.component_product_id, tenant_id=tenant_id)
+                        .with_for_update()
+                        .first()
+                    )
+                    if not component_product:
+                        raise HTTPException(400, "Componente de kit inválido")
+
+                    required_qty = component.quantity * item.quantity
+                    if component_product.stock < required_qty:
+                        raise HTTPException(
+                            400,
+                            f"Stock insuficiente para {component_product.name}"
+                        )
+                    component_requirements.append((component_product, required_qty))
+
+                for component_product, required_qty in component_requirements:
+                    component_product.stock -= required_qty
+
+            elif product.product_type == ProductType.stock:
+                conversion_factor = product.conversion_factor or Decimal("1")
+                stock_to_deduct = item.quantity * conversion_factor
+                if product.stock < stock_to_deduct:
+                    raise HTTPException(400, f"Stock insuficiente para {product.name}")
+                product.stock -= stock_to_deduct
+
+            subtotal += item.subtotal
+            tax_total += item.tax_amount
+
+        sale.subtotal = subtotal.quantize(money_quantizer)
+        sale.tax_amount = tax_total.quantize(money_quantizer)
+        sale.total = (sale.subtotal + sale.tax_amount).quantize(money_quantizer)
+        sale.status = "completed"
+
+        accounting_service.create_sale_move(db=db, sale=sale)
+
+        db.flush()
+        db.refresh(sale)
+        return sale
+
+
+def _validate_sale_context(db: Session, tenant_id: int, sale_data: SaleCreate | SaleDraftCreate) -> None:
+    tenant = db.query(Tenant).filter_by(id=tenant_id, is_active=True).first()
+    if not tenant:
+        raise HTTPException(403, "Tenant inválido o inactivo")
+    if tenant.electronic_invoicing_enabled and (not sale_data.cae or not sale_data.invoice_type):
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "CAE y tipo de factura son obligatorios para facturación electrónica"
+        )
+
+    pos = db.query(PointOfSale).filter_by(
+        id=sale_data.point_of_sale_id,
+        tenant_id=tenant_id
+    ).first()
+    if not pos:
+        raise HTTPException(400, "Punto de venta inválido")
+
+    if sale_data.client_id:
+        client = db.query(Client).filter_by(
+            id=sale_data.client_id,
+            tenant_id=tenant_id
+        ).first()
+        if not client:
+            raise HTTPException(400, "Cliente inválido")
+
+    currency = db.query(Currency).filter_by(id=sale_data.currency_id).first()
+    if not currency:
+        raise HTTPException(400, "Moneda inválida")
+
+
+def _apply_sale_items_without_stock(
+    db: Session,
+    tenant_id: int,
+    sale: Sale,
+    items: list
+) -> None:
+    subtotal = Decimal("0")
+    tax_total = Decimal("0")
+    money_quantizer = Decimal("0.01")
+
+    for item in items:
+        product = (
+            db.query(Product)
+            .filter_by(id=item.product_id, tenant_id=tenant_id)
+            .first()
+        )
+
+        if not product:
+            raise HTTPException(404, "Producto no pertenece al tenant")
+
+        unit_price = product.price
+        line_subtotal = (unit_price * item.quantity).quantize(money_quantizer)
+        tax_rate = product.tax_rate or Decimal("0")
+        tax_amount = (
+            (line_subtotal * tax_rate) / Decimal("100")
+        ).quantize(money_quantizer)
+        line_total = (line_subtotal + tax_amount).quantize(money_quantizer)
+
+        detail = SaleDetail(
+            sale_id=sale.id,
+            product_id=product.id,
+            quantity=item.quantity,
+            unit_price=unit_price,
+            tax_rate=tax_rate,
+            subtotal=line_subtotal,
+            tax_amount=tax_amount,
+            total=line_total
+        )
+
+        db.add(detail)
+
+        subtotal += line_subtotal
+        tax_total += tax_amount
+
+    sale.subtotal = subtotal.quantize(money_quantizer)
+    sale.tax_amount = tax_total.quantize(money_quantizer)
+    sale.total = (sale.subtotal + sale.tax_amount).quantize(money_quantizer)
+
+
+def _apply_sale_items_with_stock(
+    db: Session,
+    tenant_id: int,
+    sale: Sale,
+    items: list
+) -> None:
+    subtotal = Decimal("0")
+    tax_total = Decimal("0")
+    money_quantizer = Decimal("0.01")
+
+    for item in items:
+
+        product = (
+            db.query(Product)
+            .filter_by(id=item.product_id, tenant_id=tenant_id)
+            .with_for_update()
+            .first()
+        )
+
+        if not product:
+            raise HTTPException(404, "Producto no pertenece al tenant")
+
+        if product.product_type == ProductType.kit:
+            components = db.query(ProductKit).filter(
+                ProductKit.kit_product_id == product.id
+            ).all()
+
+            if not components:
+                raise HTTPException(400, f"El kit {product.name} no tiene componentes")
+
+            component_requirements = []
+            for component in components:
+                component_product = (
+                    db.query(Product)
+                    .filter_by(id=component.component_product_id, tenant_id=tenant_id)
+                    .with_for_update()
+                    .first()
+                )
+                if not component_product:
+                    raise HTTPException(400, "Componente de kit inválido")
+
+                required_qty = component.quantity * item.quantity
+                if component_product.stock < required_qty:
+                    raise HTTPException(
+                        400,
+                        f"Stock insuficiente para {component_product.name}"
+                    )
+                component_requirements.append((component_product, required_qty))
+
+            for component_product, required_qty in component_requirements:
+                component_product.stock -= required_qty
+
+        elif product.product_type == ProductType.stock:
+            conversion_factor = product.conversion_factor or Decimal("1")
+            stock_to_deduct = item.quantity * conversion_factor
+            if product.stock < stock_to_deduct:
+                raise HTTPException(400, f"Stock insuficiente para {product.name}")
+            product.stock -= stock_to_deduct
+
+        unit_price = product.price
+        line_subtotal = (unit_price * item.quantity).quantize(money_quantizer)
+        tax_rate = product.tax_rate or Decimal("0")
+        tax_amount = (
+            (line_subtotal * tax_rate) / Decimal("100")
+        ).quantize(money_quantizer)
+        line_total = (line_subtotal + tax_amount).quantize(money_quantizer)
+
+        detail = SaleDetail(
+            sale_id=sale.id,
+            product_id=product.id,
+            quantity=item.quantity,
+            unit_price=unit_price,
+            tax_rate=tax_rate,
+            subtotal=line_subtotal,
+            tax_amount=tax_amount,
+            total=line_total
+        )
+
+        db.add(detail)
+
+        subtotal += line_subtotal
+        tax_total += tax_amount
+
+    sale.subtotal = subtotal.quantize(money_quantizer)
+    sale.tax_amount = tax_total.quantize(money_quantizer)
+    sale.total = (sale.subtotal + sale.tax_amount).quantize(money_quantizer)
