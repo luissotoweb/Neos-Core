@@ -7,11 +7,13 @@ from typing import List, Optional
 from fastapi import HTTPException, status
 
 # Importar desde archivos separados (NO desde tax_models.py)
-from neos_core.database.models import Currency, PointOfSale
+from neos_core.database.models import Currency, PointOfSale, TaxRate
 from neos_core.schemas.config_schema import (
     CurrencyCreate,
     PointOfSaleCreate,
-    PointOfSaleUpdate
+    PointOfSaleUpdate,
+    TaxRateCreate,
+    TaxRateUpdate
 )
 
 
@@ -155,6 +157,104 @@ def delete_pos(db: Session, pos_id: int, tenant_id: int) -> bool:
 
     # Soft delete
     db_pos.is_active = False
+    db.commit()
+
+    return True
+
+
+# ============ CRUD TASAS DE IMPUESTO ============
+
+def get_tax_rates_by_tenant(
+        db: Session,
+        tenant_id: int,
+        is_active: Optional[bool] = None
+) -> List[TaxRate]:
+    """Lista tasas de impuesto por tenant"""
+    query = db.query(TaxRate).filter(TaxRate.tenant_id == tenant_id)
+
+    if is_active is not None:
+        query = query.filter(TaxRate.is_active == is_active)
+
+    return query.all()
+
+
+def get_tax_rate_by_id(db: Session, tax_rate_id: int, tenant_id: int) -> Optional[TaxRate]:
+    """Obtiene una tasa de impuesto por ID con aislamiento de tenant"""
+    return db.query(TaxRate).filter(
+        TaxRate.id == tax_rate_id,
+        TaxRate.tenant_id == tenant_id
+    ).first()
+
+
+def get_tax_rate_by_name(db: Session, name: str, tenant_id: int) -> Optional[TaxRate]:
+    """Busca una tasa de impuesto por nombre dentro del tenant"""
+    return db.query(TaxRate).filter(
+        TaxRate.name == name,
+        TaxRate.tenant_id == tenant_id
+    ).first()
+
+
+def create_tax_rate(db: Session, tax_rate: TaxRateCreate) -> TaxRate:
+    """Crea una tasa de impuesto para el tenant"""
+    existing = get_tax_rate_by_name(db, tax_rate.name, tax_rate.tenant_id)
+
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Ya existe una tasa de impuesto con el nombre '{tax_rate.name}' en tu empresa"
+        )
+
+    db_tax_rate = TaxRate(**tax_rate.model_dump())
+    db.add(db_tax_rate)
+    db.commit()
+    db.refresh(db_tax_rate)
+    return db_tax_rate
+
+
+def update_tax_rate(
+        db: Session,
+        tax_rate_id: int,
+        tenant_id: int,
+        tax_rate_update: TaxRateUpdate
+) -> TaxRate:
+    """Actualiza una tasa de impuesto existente"""
+    db_tax_rate = get_tax_rate_by_id(db, tax_rate_id, tenant_id)
+
+    if not db_tax_rate:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Tasa de impuesto no encontrada"
+        )
+
+    update_data = tax_rate_update.model_dump(exclude_unset=True)
+
+    if "name" in update_data:
+        existing = get_tax_rate_by_name(db, update_data["name"], tenant_id)
+        if existing and existing.id != db_tax_rate.id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Ya existe una tasa de impuesto con el nombre '{update_data['name']}' en tu empresa"
+            )
+
+    for field, value in update_data.items():
+        setattr(db_tax_rate, field, value)
+
+    db.commit()
+    db.refresh(db_tax_rate)
+    return db_tax_rate
+
+
+def delete_tax_rate(db: Session, tax_rate_id: int, tenant_id: int) -> bool:
+    """Elimina (soft delete) una tasa de impuesto"""
+    db_tax_rate = get_tax_rate_by_id(db, tax_rate_id, tenant_id)
+
+    if not db_tax_rate:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Tasa de impuesto no encontrada"
+        )
+
+    db_tax_rate.is_active = False
     db.commit()
 
     return True

@@ -34,6 +34,7 @@ class Product(Base):
     stock = Column(Numeric(10, 4), nullable=False, default=0)
     min_stock = Column(Numeric(10, 4), nullable=True)
 
+    tax_rate_id = Column(Integer, ForeignKey("tax_rates.id"), nullable=True, index=True)
     tax_rate = Column(Numeric(5, 2), nullable=False, default=0)
 
     attributes = Column(JSONB, nullable=True)
@@ -46,6 +47,7 @@ class Product(Base):
     updated_at = Column(DateTime, onupdate=func.now())
 
     tenant = relationship("Tenant")
+    tax_rate_catalog = relationship("TaxRate")
     kit_components = relationship(
         "ProductKit",
         foreign_keys="ProductKit.kit_product_id",

@@ -7,7 +7,7 @@ from sqlalchemy import case, func, or_
 from typing import List, Optional
 from fastapi import HTTPException, status
 
-from neos_core.database.models import Product, ProductKit, ProductType
+from neos_core.database.models import Product, ProductKit, ProductType, TaxRate
 from neos_core.schemas.product_schema import ProductCreate, ProductUpdate
 
 
@@ -35,6 +35,30 @@ def _validate_unit_conversion(
         )
 
 
+def _resolve_tax_rate(
+        db: Session,
+        tenant_id: int,
+        tax_rate_id: Optional[int],
+        fallback_rate
+):
+    if tax_rate_id is None:
+        return fallback_rate
+
+    tax_rate = db.query(TaxRate).filter(
+        TaxRate.id == tax_rate_id,
+        TaxRate.tenant_id == tenant_id,
+        TaxRate.is_active == True
+    ).first()
+
+    if not tax_rate:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La tasa de impuesto seleccionada no es válida para este tenant"
+        )
+
+    return tax_rate.rate
+
+
 def create_product(db: Session, product: ProductCreate) -> Product:
     """Crea un nuevo producto"""
     _validate_unit_conversion(
@@ -56,6 +80,13 @@ def create_product(db: Session, product: ProductCreate) -> Product:
 
     data = product.model_dump()
     kit_components = data.pop("kit_components", None)
+
+    data["tax_rate"] = _resolve_tax_rate(
+        db=db,
+        tenant_id=product.tenant_id,
+        tax_rate_id=data.get("tax_rate_id"),
+        fallback_rate=data.get("tax_rate")
+    )
 
     if data.get("is_service"):
         data["product_type"] = ProductType.service
@@ -169,6 +200,14 @@ def update_product(
     # Actualizar solo los campos que vinieron en el request
     update_data = product_update.model_dump(exclude_unset=True)
     kit_components = update_data.pop("kit_components", None)
+
+    if "tax_rate_id" in update_data or "tax_rate" in update_data:
+        update_data["tax_rate"] = _resolve_tax_rate(
+            db=db,
+            tenant_id=db_product.tenant_id,
+            tax_rate_id=update_data.get("tax_rate_id"),
+            fallback_rate=update_data.get("tax_rate", db_product.tax_rate)
+        )
 
     if update_data.get("is_service"):
         update_data["product_type"] = ProductType.service
