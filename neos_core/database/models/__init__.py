@@ -27,6 +27,8 @@ from neos_core.database.models.cash_count import CashCount
 
 # Modelos de onboarding
 from neos_core.database.models.tenant_onboarding_model import OnboardingPreset, TenantOnboardingConfig
+# Modelos de configuración inicial por tenant
+from neos_core.database.models.tenant_setup_model import TenantCategory, TenantActiveModule
 
 # Modelos de ventas
 from neos_core.database.models.sales_model import Sale, SaleDetail
@@ -76,4 +78,7 @@ __all__ = [
     # Onboarding
     "OnboardingPreset",
     "TenantOnboardingConfig",
+    # Configuración inicial
+    "TenantCategory",
+    "TenantActiveModule",
 ]
