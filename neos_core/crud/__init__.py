@@ -79,6 +79,20 @@ from .ai_crud import (
     create_ai_interaction,
 )
 
+# Expense CRUD
+from .expense_crud import (
+    create_expense,
+    get_expense_by_id,
+    get_expenses,
+)
+
+# Purchase CRUD
+from .purchase_crud import (
+    create_purchase,
+    get_purchase_by_id,
+    get_purchases,
+)
+
 __all__ = [
     # Tenant
     "get_tenant_by_name",
@@ -130,4 +144,12 @@ __all__ = [
     # Cash Count
     "create_cash_count",
     "get_cash_count",
+    # Expense
+    "create_expense",
+    "get_expense_by_id",
+    "get_expenses",
+    # Purchase
+    "create_purchase",
+    "get_purchase_by_id",
+    "get_purchases",
 ]
