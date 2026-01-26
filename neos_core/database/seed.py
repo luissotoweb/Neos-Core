@@ -175,7 +175,35 @@ def seed_products(db: Session, tenant_id: int):
     print("📦 Productos creados correctamente")
 
 
-def run_full_seed(db: Session):
+def _ensure_seed_tenant(db: Session, tenant_id: int | None = None) -> Tenant:
+    if tenant_id is not None:
+        tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+        if tenant:
+            return tenant
+
+    tenant = db.query(Tenant).filter(Tenant.is_active == True).first()
+    if tenant:
+        return tenant
+
+    tenant = db.query(Tenant).filter(Tenant.name == "Neos Core HQ").first()
+    if tenant:
+        tenant.is_active = True
+        db.commit()
+        return tenant
+
+    tenant = Tenant(
+        name="Neos Core HQ",
+        description="Administración Central del SaaS",
+        is_active=True,
+    )
+    db.add(tenant)
+    db.commit()
+    db.refresh(tenant)
+    print(f"✅ Tenant creado: {tenant.name} (ID: {tenant.id})")
+    return tenant
+
+
+def run_full_seed(db: Session, tenant_id: int | None = None):
     """
     Ejecuta el seed completo del sistema.
     """
@@ -196,20 +224,15 @@ def run_full_seed(db: Session):
         print("\n💰 Paso 3/5: Creando Monedas...")
         seed_currencies(db)
 
-        # 4. Seed de Puntos de Venta (Solo si hay tenants activos)
+        # 4. Seed de Puntos de Venta (crea tenant base si no existe)
         print("\n🏪 Paso 4/5: Creando Puntos de Venta...")
-        tenant = db.query(Tenant).filter(Tenant.is_active == True).first()
+        tenant = _ensure_seed_tenant(db, tenant_id=tenant_id)
+        print(f"   Usando tenant: {tenant.name} (ID: {tenant.id})")
+        seed_point_of_sale(db, tenant.id)
 
-        if tenant:
-            print(f"   Usando tenant: {tenant.name} (ID: {tenant.id})")
-            seed_point_of_sale(db, tenant.id)
-
-            # 5. Seed de Productos
-            print("\n📦 Paso 5/5: Creando Productos...")
-            seed_products(db, tenant.id)
-        else:
-            print("   ⚠️ No hay tenants activos.")
-            print("   👉 Crea un tenant primero para continuar con POS y Productos.")
+        # 5. Seed de Productos
+        print("\n📦 Paso 5/5: Creando Productos...")
+        seed_products(db, tenant.id)
 
         print("\n" + "=" * 60)
         print("✅ SEED COMPLETADO EXITOSAMENTE")
