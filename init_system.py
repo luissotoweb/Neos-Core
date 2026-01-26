@@ -14,7 +14,7 @@ from neos_core.database.init_helpers import (
     drop_all_tables,
     load_initial_data,
 )
-from neos_core.database.models import Role, User
+from neos_core.database.models import Role, Tenant, User
 from neos_core.database.seed import seed_roles
 
 
@@ -81,12 +81,21 @@ def create_tenant_and_admin(logger):
                 raise RuntimeError("No se pudo encontrar el rol superadmin tras el seed.")
 
         logger.step("Creando tenant maestro y SuperAdmin...")
-        tenant_in = schemas.TenantCreate(
-            name="Neos Core HQ",
-            description="Administración Central del SaaS",
-        )
-        tenant = crud.create_tenant(db, tenant_in)
-        logger.success(f"Tenant Maestro creado (ID: {tenant.id})")
+        tenant = db.query(Tenant).filter(
+            Tenant.name == "Neos Core HQ"
+        ).first()
+        if not tenant:
+            tenant_in = schemas.TenantCreate(
+                name="Neos Core HQ",
+                description="Administración Central del SaaS",
+            )
+            tenant = crud.create_tenant(db, tenant_in)
+            logger.success(f"Tenant Maestro creado (ID: {tenant.id})")
+        else:
+            if not tenant.is_active:
+                tenant.is_active = True
+                db.commit()
+            logger.success(f"Tenant Maestro existente (ID: {tenant.id})")
 
         user_in = schemas.UserCreate(
             email="admin@neos.com",
