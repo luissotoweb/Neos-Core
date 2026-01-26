@@ -32,7 +32,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 
 # 5. Configurar variables de entorno
-cp .env.example .env
+# Crear manualmente el archivo .env (no hay .env.example en el repo)
 # Editar .env con tus credenciales de PostgreSQL
 ```
 
@@ -41,8 +41,8 @@ cp .env.example .env
 Crear archivo `.env` en la raíz:
 
 ```env
-# Base de Datos
-DATABASE_URL=postgresql://tu_usuario:tu_password@localhost/neos_db
+# Base de Datos (si usas docker-compose el puerto expuesto es 5434)
+DATABASE_URL=postgresql://tu_usuario:tu_password@localhost:5434/neos_db
 
 # Seguridad
 SECRET_KEY=tu_clave_secreta_muy_segura_aqui
@@ -53,13 +53,10 @@ ACCESS_TOKEN_EXPIRE_MINUTES=30
 ### 4. Inicialización de Base de Datos (Primera vez)
 
 ```bash
-# Opción 1: Script automatizado (Bash)
-chmod +x init_fresh_database.sh
-./init_fresh_database.sh
-
-# Opción 2: Script automatizado (Python)
+# Opción 1: Script automatizado (Python)
+# Nota: init_system.py requiere python-dotenv y psycopg2-binary si no están en requirements.txt
 pip install python-dotenv psycopg2-binary
-python init_fresh_database.py
+python init_system.py --skip-drop-create --no-confirm
 
 # Opción 3: Manual
 alembic revision --autogenerate -m "Initial migration"
@@ -237,7 +234,7 @@ start htmlcov/index.html  # Windows
 
 | Variable | Descripción | Ejemplo |
 |----------|-------------|---------|
-| `DATABASE_URL` | URL de conexión a PostgreSQL | `postgresql://user:pass@localhost/neos_db` |
+| `DATABASE_URL` | URL de conexión a PostgreSQL | `postgresql://user:pass@localhost:5434/neos_db` |
 | `SECRET_KEY` | Clave para firmar JWT (generar con `openssl rand -hex 32`) | `abc123...` |
 | `ALGORITHM` | Algoritmo de firma JWT | `HS256` |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Tiempo de vida del token | `30` |
