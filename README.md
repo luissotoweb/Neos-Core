@@ -79,6 +79,128 @@ python -m uvicorn main:app --reload
 
 ---
 
+## 🧭 Onboarding desde cero
+
+Guía rápida para levantar el proyecto desde una máquina nueva.
+
+### 1) Clonado, entorno virtual e instalación de dependencias
+
+```bash
+git clone https://github.com/tu-usuario/Neos-Core.git
+cd Neos-Core
+
+python -m venv .venv
+source .venv/bin/activate  # Linux/Mac
+# .venv\Scripts\activate   # Windows
+
+pip install -r requirements.txt
+```
+
+### 2) Opción local con `docker-compose.yml` (PostgreSQL)
+
+El archivo `docker-compose.yml` ya levanta PostgreSQL con credenciales predefinidas.
+
+```bash
+docker compose up -d
+```
+
+**PostgreSQL local (docker-compose):**
+- Host: `localhost`
+- Puerto: `5434`
+- Base de datos: `neos_db`
+- Usuario: `neos_user`
+- Password: `123456`
+
+### 3) Crear `.env`
+
+Crear el archivo `.env` en la raíz con los valores mínimos:
+
+```env
+DATABASE_URL=postgresql://neos_user:123456@localhost:5434/neos_db
+SECRET_KEY=tu_clave_secreta_muy_segura_aqui
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+```
+
+> Nota: Ajusta `DATABASE_URL` si usas una base local diferente o un entorno remoto.
+
+---
+
+## ☁️ Migración/Despliegue en AWS (EC2 + systemd)
+
+Esta ruta describe un despliegue clásico sobre **EC2** usando **systemd** para mantener el servicio.
+
+### 1) Crear base de datos en RDS (PostgreSQL)
+
+1. Crear una instancia RDS PostgreSQL (por ejemplo, `db.t3.micro` en desarrollo).
+2. Definir usuario, contraseña y base de datos.
+3. Habilitar acceso desde la VPC/subred donde vive tu EC2.
+
+**Ejemplo de `DATABASE_URL`:**
+
+```
+postgresql://<usuario>:<password>@<endpoint-rds>:5432/<database>
+```
+
+### 2) Configurar variables de entorno en EC2 (systemd)
+
+En EC2, crear un archivo de entorno (por ejemplo `/etc/neos-core.env`) y agregar:
+
+```env
+DATABASE_URL=postgresql://<usuario>:<password>@<endpoint-rds>:5432/<database>
+SECRET_KEY=<secreto-produccion>
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+```
+
+Ejemplo de unidad `systemd` (archivo `/etc/systemd/system/neos-core.service`):
+
+```ini
+[Unit]
+Description=Neos Core API
+After=network.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/opt/Neos-Core
+EnvironmentFile=/etc/neos-core.env
+ExecStart=/opt/Neos-Core/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Activar el servicio:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable neos-core
+sudo systemctl start neos-core
+sudo systemctl status neos-core
+```
+
+### 3) Migraciones y seeding inicial
+
+En el servidor (con `.env` cargado):
+
+```bash
+alembic upgrade head
+python init_system.py
+```
+
+> ⚠️ **Producción:** evitar operaciones que hagan `drop` o borren datos. Usa migraciones incrementales y revisa cualquier script de inicialización antes de ejecutarlo.
+
+### 4) Puertos, seguridad y observabilidad
+
+- **Puertos:** expone `8000` en la instancia EC2 (o detrás de Nginx/ALB).
+- **Security Groups:** permitir solo tráfico necesario:
+  - Inbound `8000` (o `80/443` si hay reverse proxy).
+  - RDS `5432` accesible únicamente desde el Security Group de la EC2.
+- **Observabilidad:** revisar logs con `journalctl -u neos-core -f` y configurar rotación/forwarding a CloudWatch si es producción.
+
+---
+
 ## 📚 Documentación de la API
 
 FastAPI genera automáticamente documentación interactiva:
