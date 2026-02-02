@@ -322,10 +322,10 @@ Neos-Core/
 
 ```bash
 # Ejecutar todos los tests
-pytest neos_core/tests/ -v
+pytest neos_core/tests -v
 
 # Ejecutar tests con coverage
-pytest neos_core/tests/ -v --cov=neos_core --cov-report=html
+pytest neos_core/tests -v --cov=neos_core --cov-report=html
 
 # Ejecutar solo tests de ventas
 pytest neos_core/tests/test_sales.py -v
