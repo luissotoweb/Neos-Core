@@ -32,8 +32,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 
 # 5. Configurar variables de entorno
-# Crear manualmente el archivo .env (no hay .env.example en el repo)
-# Editar .env con tus credenciales de PostgreSQL
+# Copiar .env.example y editar .env con tus credenciales de PostgreSQL
 ```
 
 ### 3. Configurar Variables de Entorno

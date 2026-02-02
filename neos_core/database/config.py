@@ -1,11 +1,15 @@
+import os
+
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 # 1. Definir la URL de Conexión
-# Observa que el HOST es 'db', NO 'localhost', porque Docker resuelve el nombre del servicio.
-# Esto es una buena práctica de ingeniería al trabajar con contenedores.
-DATABASE_URL = "postgresql://neos_user:neos_pwd@localhost:5432/neos_db"
+# Valor por defecto alineado con docker-compose.yml y el README.
+# Si ejecutas la app dentro de Docker, reemplaza "localhost" por "db".
+DEFAULT_DATABASE_URL = "postgresql://neos_user:123456@localhost:5434/neos_db"
+_database_url = os.getenv("DATABASE_URL")
+DATABASE_URL = _database_url if _database_url else DEFAULT_DATABASE_URL
 
 # 2. Crear el Motor (Engine)
 # El 'engine' es el punto de partida de la conexión con la base de datos.
