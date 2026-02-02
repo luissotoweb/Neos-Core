@@ -209,7 +209,7 @@ def main():
     logger.info(f"     {logger.GREEN}http://localhost:8000/docs{logger.NC}")
     logger.info("")
     logger.info("  3. Run tests:")
-    logger.info(f"     {logger.GREEN}pytest tests/ -v{logger.NC}")
+    logger.info(f"     {logger.GREEN}pytest neos_core/tests -v{logger.NC}")
     logger.info("")
 
     logger.info(f"{logger.YELLOW}Tips:{logger.NC}")
