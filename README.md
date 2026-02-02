@@ -54,8 +54,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES=30
 
 ```bash
 # Opción 1: Script automatizado (Python)
-# Nota: init_system.py requiere python-dotenv y psycopg2-binary si no están en requirements.txt
-pip install python-dotenv psycopg2-binary
+# Las dependencias necesarias ya están listadas en requirements.txt
 python init_system.py --skip-drop-create --no-confirm
 
 # Opción 3: Manual
