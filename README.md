@@ -247,9 +247,10 @@ Neos-Core/
 │   ├── security/                   # JWT, hashing, permisos
 │   ├── schemas/                    # Validación Pydantic
 │   └── crud/                       # Operaciones de DB
-├── tests/                          # Tests unitarios
+│   └── tests/                      # Tests unitarios
 ├── alembic/                        # Migraciones
 ├── main.py                         # Punto de entrada
+├── .env.example
 ├── requirements.txt
 └── README.md
 ```

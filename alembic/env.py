@@ -7,9 +7,10 @@ from alembic import context
 from dotenv import load_dotenv
 from sqlalchemy import engine_from_config, pool
 
-from neos_core.database.config import Base, DATABASE_URL
-import neos_core.database.models  # noqa: F401
+from neos_core.database.config import Base
+from neos_core.database import models
 
+# Alembic Config object
 config = context.config
 
 if config.config_file_name is not None:
@@ -17,20 +18,24 @@ if config.config_file_name is not None:
 
 load_dotenv()
 
-database_url = os.getenv("DATABASE_URL", DATABASE_URL)
-if database_url:
-    config.set_main_option("sqlalchemy.url", database_url)
-
 target_metadata = Base.metadata
 
 
+def get_database_url() -> str:
+    env_url = os.getenv("DATABASE_URL")
+    if env_url:
+        return env_url
+    return config.get_main_option("sqlalchemy.url")
+
+
 def run_migrations_offline() -> None:
-    url = config.get_main_option("sqlalchemy.url")
+    url = get_database_url()
     context.configure(
         url=url,
         target_metadata=target_metadata,
         literal_binds=True,
-        dialect_opts={"paramstyle": "named"},
+        compare_type=True,
+        compare_server_default=True,
     )
 
     with context.begin_transaction():
@@ -38,14 +43,21 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
+    configuration = config.get_section(config.config_ini_section)
+    configuration["sqlalchemy.url"] = get_database_url()
     connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
+        configuration,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
 
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            compare_type=True,
+            compare_server_default=True,
+        )
 
         with context.begin_transaction():
             context.run_migrations()
