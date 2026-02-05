@@ -43,7 +43,7 @@ Crear archivo `.env` en la raíz:
 # Base de Datos (si usas docker-compose el puerto expuesto es 5434)
 DATABASE_URL=postgresql://tu_usuario:tu_password@localhost:5434/neos_db
 
-# Seguridad
+# Seguridad (SECRET_KEY es obligatoria y debe ser segura)
 SECRET_KEY=tu_clave_secreta_muy_segura_aqui
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
@@ -117,7 +117,8 @@ ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 ```
 
-> Nota: Ajusta `DATABASE_URL` si usas una base local diferente o un entorno remoto.
+> Nota: Ajusta `DATABASE_URL` si usas una base local diferente o un entorno remoto.  
+> `SECRET_KEY` es obligatoria y debe ser un secreto real (ej. `openssl rand -hex 32`).
 
 ---
 
